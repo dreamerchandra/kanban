@@ -1,4 +1,4 @@
-import { colCount, emptyCol, maxTaskCount, swimlanesCount } from "./knob";
+import { colCount, emptyCol, maxTaskCount, swimlanesCount } from "./App/knob";
 var randomWords = require('random-words');
 
 const randomWord = (len = 5) => randomWords()
@@ -8,9 +8,6 @@ const constructDetails = (count) => [...new Array(count)].map(constructDetail)
 
 const colMeta = constructDetails(colCount);
 
-/**
- * @return {import('./index').KanbanBoardState}
- */
 export const computeState = () => constructDetails(swimlanesCount).reduce((preRow, row, idx) => {
   const cols = colMeta.reduce((preCol, col) => {
     const taskCount = (idx + 1) % emptyCol ? Math.floor(Math.random() * maxTaskCount) : 0

@@ -15,7 +15,6 @@ import {
   useState,
 } from "react";
 import { SwimlaneRef, scrollController } from "./smooth-scroll";
-import "./stub";
 import { DropParams, Id, KanbanActions, KanbanBoardState, Task } from "./type";
 
 const useScroller = (swimlanesRef: SwimlaneRef) => {
@@ -151,7 +150,7 @@ const useInit = (
   }, [actions, dispatch, fetchData]);
 };
 
-interface useKanbanStateParam {
+export interface UseKanbanStateParam {
   isDropAllowed: (params: DropParams) => boolean | Promise<boolean>;
   fetchData: () => Promise<KanbanBoardState>;
   onDropSuccess?: (params: DropParams) => void;
@@ -165,13 +164,23 @@ declare global {
   }
 }
 
+const safePromiseBoolean = async (promise: Promise<boolean>) => {
+  try {
+    const result = await promise;
+    console.log(result);
+    return result;
+  } catch (e) {
+    return false;
+  }
+};
+
 export const useKanbanState = ({
   isDropAllowed,
   onDropSuccess,
   onDropFailed,
   extraReducers,
   fetchData,
-}: useKanbanStateParam): {
+}: UseKanbanStateParam): {
   kanbanState: KanbanBoardState;
   kanbanActions: KanbanActions;
   drag: Task | null;
@@ -195,7 +204,8 @@ export const useKanbanState = ({
         const isAllowed =
           typeof isAllowedPromise === "boolean"
             ? isAllowedPromise
-            : await isAllowedPromise;
+            : await safePromiseBoolean(isAllowedPromise);
+        console.log(isAllowed);
         if (!isAllowed) {
           const params = {
             from: to,

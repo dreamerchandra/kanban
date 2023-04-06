@@ -3,28 +3,12 @@ import { Swimlane } from "./KanbanComponents";
 import { KanbanContext } from "./KanbanContext";
 import { VirtualizedList } from "./VirtualizedList";
 import cx from "./index.module.css";
-import { useKanbanState } from "./kanban-state";
-import { getData } from "./stub";
-import { DropParams, KanbanBoardState } from "./type";
+import { UseKanbanStateParam, useKanbanState } from "./kanban-state";
 
-const fetchData = (): Promise<KanbanBoardState> => {
-  return new Promise((res) => {
-    window.addEventListener("beforeunload", () => {
-      window.name = JSON.stringify(window.kanbanState);
-    });
-    if (window.name) {
-      res(JSON.parse(window.name));
-    } else {
-      getData().then((state) => {
-        res(state);
-      });
-    }
-  });
-};
-
-export const KanbanBoard: FC<{
-  isDropAllowed: (params: DropParams) => boolean | Promise<boolean>;
-}> = ({ isDropAllowed }) => {
+export const KanbanBoard: FC<UseKanbanStateParam> = ({
+  isDropAllowed,
+  fetchData,
+}) => {
   const { kanbanState, kanbanActions, drag, setDrag, swimlanesRef } =
     useKanbanState({ isDropAllowed, fetchData });
   const swimlaneIds = Object.keys(kanbanState);
