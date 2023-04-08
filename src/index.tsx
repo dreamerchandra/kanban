@@ -20,7 +20,8 @@ const fetchData = (): Promise<KanbanBoardState> => {
       window.name = JSON.stringify(window.kanbanState);
     });
     if (window.name) {
-      res(JSON.parse(window.name));
+      window.kanbanState = JSON.parse(window.name);
+      res(window.kanbanState);
     } else {
       getData().then((state) => {
         res(state);

@@ -127,7 +127,6 @@ export const useKanbanState = ({
   swimlanesRef: MutableRefObject<HTMLDivElement | undefined>;
 } => {
   const [kanbanState, dispatch] = useReducer(kanbanReducer, {});
-  window.kanbanState = kanbanState;
   const swimlanesRef = useRef<HTMLDivElement>();
   const { drag, setDrag } = useDrag<Task>(swimlanesRef);
 
@@ -162,9 +161,6 @@ export const useKanbanState = ({
       },
       purgeData: (params: PurgeAction) => {
         dispatch(stateKanbanActions.purgeData(params));
-      },
-      init: (params: KanbanBoardState) => {
-        dispatch(stateKanbanActions.init(params));
       },
     };
   }, [isDropAllowed, onDropFailed, onDropSuccess]);

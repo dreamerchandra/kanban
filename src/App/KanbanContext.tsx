@@ -12,7 +12,6 @@ import { DropParams, KanbanBoardState, PurgeAction, Task } from "./type";
 type KanbanActions = {
   handleDrop: (params: DropParams) => void;
   purgeData: (params: PurgeAction) => void;
-  init: (params: KanbanBoardState) => void;
 };
 export interface KanbanContextParams {
   dragTask: Task | null;
