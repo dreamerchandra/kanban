@@ -41,7 +41,7 @@ export interface Task<TaskDetails = { id: Id }> {
 export interface KanbanCol<ColDetails = { id: Id }, TaskDetails = { id: Id }> {
   id: Id;
   label: string;
-  count: number;
+  count: number; // purging does not update count. This is to give an heads up on number of tasks in a col
   extra: ColDetails;
   tasks: Task<TaskDetails>[];
 }
@@ -68,12 +68,13 @@ export interface KanbanBoardState<
   [key: string]: KanbanSwimlanes<SwimlanesDetails, ColDetails, TaskDetails>;
 }
 
-export interface KanbanActions {
-  handleDrop: ({ from, task, to }: DropParams) => Promise<void>;
-}
-
 // convert KanbanContext to interface
-export interface KanbanContextInterface<AnySwimlane, AnyCol, AnyTask> {
+export interface KanbanContextInterface<
+  KanbanActions,
+  AnySwimlane,
+  AnyCol,
+  AnyTask
+> {
   dragTask: Task | null;
   setTask: <T>(task: Task<T>) => void;
   isDropAllowed: boolean;
@@ -86,4 +87,12 @@ export interface DropParams {
   from: { colId: Id; swimlaneId: Id };
   task: Task;
   to: { colId: Id; swimlaneId: Id };
+}
+
+export interface PurgeAction {
+  inView: {
+    swimlaneIds: Id[];
+  };
+  startOffset?: number;
+  endOffset?: number;
 }

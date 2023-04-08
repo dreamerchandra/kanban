@@ -1,21 +1,19 @@
 import {
-  ActionReducerMapBuilder,
-  AnyAction,
-  PayloadAction,
-  createSlice,
-} from "@reduxjs/toolkit";
-import {
-  Dispatch,
   MutableRefObject,
   useCallback,
-  useEffect,
   useMemo,
   useReducer,
   useRef,
   useState,
 } from "react";
+import {
+  KanbanContextParams,
+  kanbanReducer,
+  stateKanbanActions,
+  useInit,
+} from "./KanbanContext";
 import { SwimlaneRef, scrollController } from "./smooth-scroll";
-import { DropParams, Id, KanbanActions, KanbanBoardState, Task } from "./type";
+import { DropParams, Id, KanbanBoardState, PurgeAction, Task } from "./type";
 
 const useScroller = (swimlanesRef: SwimlaneRef) => {
   return useMemo(() => scrollController(swimlanesRef), [swimlanesRef]);
@@ -94,68 +92,11 @@ const useDrag = <T extends { id: Id }>(
   return { drag, setDrag };
 };
 
-const handleDrop = (
-  state: KanbanBoardState,
-  action: PayloadAction<DropParams>
-) => {
-  const { from, to, task } = action.payload;
-  state[from.swimlaneId].cols[from.colId].tasks = state[from.swimlaneId].cols[
-    from.colId
-  ].tasks.filter((t) => t.id !== task.id);
-  state[from.swimlaneId].cols[from.colId].count -= 1;
-  state[to.swimlaneId].cols[to.colId].count += 1;
-  state[to.swimlaneId].cols[to.colId].tasks.unshift({
-    ...task,
-    colId: to.colId,
-    swimlaneId: to.swimlaneId,
-  });
-  const acrossSwimlanes = from.swimlaneId !== to.swimlaneId;
-  if (acrossSwimlanes) {
-    state[from.swimlaneId].count -= 1;
-    state[to.swimlaneId].count += 1;
-  }
-  return state;
-};
-
-const init = (
-  state: KanbanBoardState,
-  actions: PayloadAction<KanbanBoardState>
-) => {
-  state = actions.payload;
-  return state;
-};
-
-const kanbanSlice = (
-  extraReducers?: (builder: ActionReducerMapBuilder<KanbanBoardState>) => void
-) =>
-  createSlice({
-    initialState: {},
-    name: "kanban-board-slice",
-    reducers: {
-      handleDrop,
-      init,
-    },
-    extraReducers,
-  });
-
-const useInit = (
-  dispatch: Dispatch<AnyAction>,
-  fetchData: () => Promise<KanbanBoardState>,
-  actions: ReturnType<typeof kanbanSlice>["actions"]
-) => {
-  useEffect(() => {
-    fetchData().then((state) => {
-      dispatch(actions.init(state));
-    });
-  }, [actions, dispatch, fetchData]);
-};
-
 export interface UseKanbanStateParam {
   isDropAllowed: (params: DropParams) => boolean | Promise<boolean>;
   fetchData: () => Promise<KanbanBoardState>;
   onDropSuccess?: (params: DropParams) => void;
   onDropFailed?: (params: DropParams) => void;
-  extraReducers?: (builder?: ActionReducerMapBuilder<KanbanBoardState>) => void;
 }
 
 declare global {
@@ -178,29 +119,32 @@ export const useKanbanState = ({
   isDropAllowed,
   onDropSuccess,
   onDropFailed,
-  extraReducers,
   fetchData,
 }: UseKanbanStateParam): {
   kanbanState: KanbanBoardState;
-  kanbanActions: KanbanActions;
+  kanbanActions: KanbanContextParams["kanbanActions"];
   drag: Task | null;
   setDrag: (task: Task | null) => void;
   swimlanesRef: MutableRefObject<HTMLDivElement | undefined>;
 } => {
-  const slice = useMemo(() => kanbanSlice(extraReducers), [extraReducers]);
-  const [kanbanState, dispatch] = useReducer(slice.reducer, {});
+  const [kanbanState, dispatch] = useReducer(kanbanReducer, {});
   window.kanbanState = kanbanState;
-  const actions = slice.actions;
   const swimlanesRef = useRef<HTMLDivElement>();
   const { drag, setDrag } = useDrag<Task>(swimlanesRef);
 
-  useInit(dispatch, fetchData, actions);
+  useInit(dispatch, fetchData, stateKanbanActions);
 
   const kanbanActions = useMemo(() => {
     return {
       handleDrop: async ({ from, task, to }: DropParams) => {
         const isAllowedPromise = isDropAllowed({ task, from, to });
-        dispatch(actions.handleDrop({ from, task: structuredClone(task), to }));
+        dispatch(
+          stateKanbanActions.handleDrop({
+            from,
+            task: structuredClone(task),
+            to,
+          })
+        );
         const isAllowed =
           typeof isAllowedPromise === "boolean"
             ? isAllowedPromise
@@ -212,13 +156,25 @@ export const useKanbanState = ({
             task: structuredClone(task),
             to: from,
           };
-          dispatch(actions.handleDrop(params));
+          dispatch(stateKanbanActions.handleDrop(params));
           onDropFailed?.(params);
         } else {
           onDropSuccess?.({ from, task, to });
         }
       },
+      purgeData: (params: PurgeAction) => {
+        dispatch(stateKanbanActions.purgeData(params));
+      },
+      init: (params: KanbanBoardState) => {
+        dispatch(stateKanbanActions.init(params));
+      },
     };
-  }, [actions, isDropAllowed, onDropFailed, onDropSuccess]);
-  return { kanbanState, kanbanActions, drag, setDrag, swimlanesRef };
+  }, [isDropAllowed, onDropFailed, onDropSuccess]);
+  return {
+    kanbanState,
+    kanbanActions,
+    drag,
+    setDrag,
+    swimlanesRef,
+  };
 };

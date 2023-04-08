@@ -4,6 +4,7 @@ import { KanbanContext } from "./KanbanContext";
 import { VirtualizedList } from "./VirtualizedList";
 import cx from "./index.module.css";
 import { UseKanbanStateParam, useKanbanState } from "./kanban-state";
+import { inMemoryBuffer } from "./knob";
 
 export const KanbanBoard: FC<UseKanbanStateParam> = ({
   isDropAllowed,
@@ -32,19 +33,31 @@ export const KanbanBoard: FC<UseKanbanStateParam> = ({
         }}
       >
         <VirtualizedList
-          // ref={innerRef}
           swimlanesRef={swimlanesRef}
           numItems={swimlaneIds.length}
           itemHeight={500}
           windowHeight={window.innerHeight}
           onScroll={useCallback(
             (start, end) => {
+              const inMemStart =
+                start - inMemoryBuffer > 0 ? start - inMemoryBuffer : 0;
+              const inMemEnd =
+                end + inMemoryBuffer < swimlaneIds.length
+                  ? end + inMemoryBuffer
+                  : swimlaneIds.length;
               console.log(
-                kanbanState[swimlaneIds[start]],
-                kanbanState[swimlaneIds[end]]
+                "inview",
+                swimlaneIds.slice(inMemStart, inMemEnd + 1)
               );
+              kanbanActions.purgeData({
+                inView: {
+                  swimlaneIds: swimlaneIds.slice(inMemStart, inMemEnd + 1),
+                },
+                endOffset: 10,
+                startOffset: 0,
+              });
             },
-            [kanbanState, swimlaneIds]
+            [kanbanActions, swimlaneIds]
           )}
           renderItem={({ index, style }) => (
             <div style={style} key={swimlaneIds[index]}>
