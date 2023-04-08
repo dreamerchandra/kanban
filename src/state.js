@@ -8,7 +8,7 @@ const constructDetails = (count) => [...new Array(count)].map(constructDetail)
 
 const colMeta = constructDetails(colCount);
 
-export const computeState = () => constructDetails(swimlanesCount).reduce((preRow, row, idx) => {
+export const computeState = () => constructDetails(swimlanesCount).reduce((preRow, swimlane, idx) => {
   const cols = colMeta.reduce((preCol, col) => {
     const taskCount = (idx + 1) % emptyCol ? Math.floor(Math.random() * maxTaskCount) : 0
     return {
@@ -16,15 +16,15 @@ export const computeState = () => constructDetails(swimlanesCount).reduce((preRo
       [col.id]: {
         ...col,
         count: taskCount,
-        tasks: constructDetails(taskCount).map(task => ({ ...task, colId: col.id, rowId: row.id })),
+        tasks: constructDetails(taskCount).map(task => ({ ...task, colId: col.id, swimlaneId: swimlane.id })),
       }
     }
   }, {})
   return {
     ...preRow,
-    [row.id]: {
-      id: row.id,
-      label: row.label,
+    [swimlane.id]: {
+      id: swimlane.id,
+      label: swimlane.label,
       count: Object.values(cols).reduce((sum, col) => col.count + sum, 0),
       cols,
     }

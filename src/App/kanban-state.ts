@@ -108,7 +108,6 @@ declare global {
 const safePromiseBoolean = async (promise: Promise<boolean>) => {
   try {
     const result = await promise;
-    console.log(result);
     return result;
   } catch (e) {
     return false;
@@ -134,7 +133,7 @@ export const useKanbanState = ({
 
   useInit(dispatch, fetchData, stateKanbanActions);
 
-  const kanbanActions = useMemo(() => {
+  const kanbanActions = useMemo((): KanbanContextParams["kanbanActions"] => {
     return {
       handleDrop: async ({ from, task, to }: DropParams) => {
         const isAllowedPromise = isDropAllowed({ task, from, to });
@@ -149,7 +148,6 @@ export const useKanbanState = ({
           typeof isAllowedPromise === "boolean"
             ? isAllowedPromise
             : await safePromiseBoolean(isAllowedPromise);
-        console.log(isAllowed);
         if (!isAllowed) {
           const params = {
             from: to,

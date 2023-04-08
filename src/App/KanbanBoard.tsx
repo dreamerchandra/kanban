@@ -45,10 +45,6 @@ export const KanbanBoard: FC<UseKanbanStateParam> = ({
                 end + inMemoryBuffer < swimlaneIds.length
                   ? end + inMemoryBuffer
                   : swimlaneIds.length;
-              console.log(
-                "inview",
-                swimlaneIds.slice(inMemStart, inMemEnd + 1)
-              );
               kanbanActions.purgeData({
                 inView: {
                   swimlaneIds: swimlaneIds.slice(inMemStart, inMemEnd + 1),

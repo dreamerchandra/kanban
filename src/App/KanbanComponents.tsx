@@ -124,8 +124,10 @@ const Col = withKanbanContext<ColProps>(
           }}
           onDrop={(e) => {
             e.currentTarget.classList.remove(cx.colDrag);
-            const { task } = JSON.parse(e.dataTransfer.getData("text/plan"));
-            const from = { swimlaneId: task.rowId, colId: task.colId };
+            const { task } = JSON.parse(
+              e.dataTransfer.getData("text/plan")
+            ) as { task: ITask };
+            const from = { swimlaneId: task.swimlaneId, colId: task.colId };
             const to = { colId: col.id, swimlaneId };
             e.dataTransfer.clearData();
             kanbanActions.handleDrop({ from, task, to });
@@ -177,17 +179,17 @@ interface RowProps {
 }
 
 export const Swimlane = withKanbanContext<RowProps>(
-  ({ swimlaneId: rowId, kanbanState }) => {
-    const row = kanbanState[rowId];
+  ({ swimlaneId, kanbanState }) => {
+    const swimlane = kanbanState[swimlaneId];
     return (
       <div className={cx.row}>
         <div className={cx.rowHeader}>
-          <span className={cx.pill}>{row.label}</span>
-          <Counter className={cx.count} count={row.count} />
+          <span className={cx.pill}>{swimlane.label}</span>
+          <Counter className={cx.count} count={swimlane.count} />
         </div>
         <div className={cx.colWrapper}>
-          {Object.values(row.cols).map((col) => (
-            <Col col={col} key={col.id} swimlaneId={rowId} />
+          {Object.values(swimlane.cols).map((col) => (
+            <Col col={col} key={col.id} swimlaneId={swimlaneId} />
           ))}
         </div>
       </div>
