@@ -56,31 +56,37 @@ interface CounterProps {
 const Counter: FC<CounterProps> = ({ count, className }) => {
   const [meta, setMeta] = useState({ count, highlight: false });
   useLayoutEffect(() => {
-    let timerId = 0;
-    timerId = window.setTimeout(() => {
-      setMeta((oldMeta) => {
-        if (oldMeta.count === count) {
-          return oldMeta;
-        }
-        setTimeout(() => {
-          setMeta({
-            count,
-            highlight: false,
-          });
-        }, 1000);
-        setTimeout(() => {
-          setMeta({
-            count,
+    let timerIds: number[] = [];
+    timerIds.push(
+      window.setTimeout(() => {
+        setMeta((oldMeta) => {
+          if (oldMeta.count === count) {
+            return oldMeta;
+          }
+          timerIds.push(
+            window.setTimeout(() => {
+              setMeta({
+                count,
+                highlight: false,
+              });
+            }, 1000)
+          );
+          timerIds.push(
+            window.setTimeout(() => {
+              setMeta({
+                count,
+                highlight: true,
+              });
+            }, 500)
+          );
+          return {
+            count: oldMeta.count,
             highlight: true,
-          });
-        }, 500);
-        return {
-          count: oldMeta.count,
-          highlight: true,
-        };
-      });
-    }, highlightInterval);
-    return () => clearTimeout(timerId);
+          };
+        });
+      }, highlightInterval)
+    );
+    return () => timerIds.forEach((id) => clearTimeout(id));
   }, [count]);
   return (
     <span
