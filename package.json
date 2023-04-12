@@ -32,9 +32,8 @@
   },
   "license": "UNLICENSED",
   "peerDependencies": {
-    "react": "^16.8.0 || 17.x",
-    "react-dom": "^16.8.0 || 17.x",
-    "styled-components": "^5.0.0"
+    "react": "^16.14.0 || 17.x",
+    "react-dom": "^16.14.0 || 17.x"
   },
   "files": [
     "dist"

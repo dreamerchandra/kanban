@@ -11,7 +11,7 @@ const inMemoryBuffer = 10;
 const slowScroll = 8;
 const speedScroll = 16;
 
-const randomWord = () => randomWords();
+const randomWord = () => randomWords(5);
 
 const constructDetail = () => ({ id: Math.random(), label: randomWord() });
 const constructDetails = (count: any) =>
