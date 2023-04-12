@@ -1,5 +1,4 @@
 import { KanbanBoard } from "./App";
-// import "./index.css";
 
 // const isAllowedBE = (): Promise<boolean> => {
 //   return new Promise((res, rej) => {

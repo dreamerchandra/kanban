@@ -295,6 +295,7 @@ const northstar = {
     },
   ],
   api: `https://northstar.api.nitro.run`,
+  apiKey: `e1ff0e71-2b41-4336-8ccb-23704b3d13b7`,
 };
 
 const leadsquared = {
@@ -372,8 +373,9 @@ const leadsquared = {
     },
   ],
   api: `https://leadsquared.api.rocketlane.com`,
+  apiKey: `9d78e97f-a134-4b8f-82de-ee5bc740d49e`,
 };
-const { statusFieldId, status, api } = northstar;
+const { statusFieldId, status, api, apiKey } = leadsquared;
 const statusLookup = new Map(status.map((s) => [s.value, s]));
 
 enum TaskStatus {
@@ -403,7 +405,7 @@ export const computeState = async () => {
   const data: Task[] = await (
     await fetch(`${api}/api/v1/tasks/light`, {
       headers: {
-        "api-key": "",
+        "api-key": apiKey,
       },
       method: "GET",
       mode: "cors",
