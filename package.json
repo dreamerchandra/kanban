@@ -43,11 +43,14 @@
   "exports": {
     ".": {
       "import": "./dist/kanban.es.js",
-      "require": "./dist/kanban.umd.js"
+      "require": "./dist/kanban.umd.js",
+      "types": "./dist/index.d.ts"
     },
     "./dist/inject-style": {
       "import": "./dist/inject-style.esm.mjs",
-      "require": "./dist/inject-style.umd.js"
-    }
+      "require": "./dist/inject-style.umd.js",
+      "types": "./dist/inject-style.d.ts"
+    },
+    "./dist/style.css": "./dist/style.css"
   }
 }

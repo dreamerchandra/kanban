@@ -1,5 +1,5 @@
-import "../../../dist/style.css";
-import KanbanBoard from "../../../src";
+import { KanbanBoard } from "kanban";
+import "kanban/dist/style.css";
 import { getData } from "./stub";
 
 const isAllowedBE = (): Promise<boolean> => {

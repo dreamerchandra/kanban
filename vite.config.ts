@@ -35,7 +35,7 @@ export default defineConfig({
   ],
   build: {
     lib: {
-      entry: path.resolve(__dirname, "src/index.ts"),
+      entry: path.resolve(__dirname, "src/Kanban/index.tsx"),
       name: "Kanban",
       formats: ["es", "umd"],
       fileName: (format) => `kanban.${format}.js`,
