@@ -92,9 +92,9 @@ const useDrag = <T extends { id: Id }>(
   return { drag, setDrag };
 };
 
-export interface UseKanbanStateParam {
+export interface UseKanbanStateParam<GenericTask extends { id: Id }> {
   isDropAllowed: (params: DropParams) => boolean | Promise<boolean>;
-  fetchData: () => Promise<KanbanBoardState>;
+  fetchData: () => Promise<KanbanBoardState<GenericTask>>;
   onDropSuccess?: (params: DropParams) => void;
   onDropFailed?: (params: DropParams) => void;
 }
@@ -114,21 +114,21 @@ const safePromiseBoolean = async (promise: Promise<boolean>) => {
   }
 };
 
-export const useKanbanState = ({
+export const useKanbanState = <TaskDetails extends { id: Id }>({
   isDropAllowed,
   onDropSuccess,
   onDropFailed,
   fetchData,
-}: UseKanbanStateParam): {
+}: UseKanbanStateParam<TaskDetails>): {
   kanbanState: KanbanBoardState;
   kanbanActions: KanbanContextParams["kanbanActions"];
-  drag: Task | null;
-  setDrag: (task: Task | null) => void;
+  drag: Task<TaskDetails> | null;
+  setDrag: (task: Task<TaskDetails> | null) => void;
   swimlanesRef: MutableRefObject<HTMLDivElement | undefined>;
 } => {
   const [kanbanState, dispatch] = useReducer(kanbanReducer, {});
   const swimlanesRef = useRef<HTMLDivElement>();
-  const { drag, setDrag } = useDrag<Task>(swimlanesRef);
+  const { drag, setDrag } = useDrag<Task<TaskDetails>>(swimlanesRef);
 
   useInit(dispatch, fetchData, stateKanbanActions);
 

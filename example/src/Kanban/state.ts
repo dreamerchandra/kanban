@@ -1,4 +1,5 @@
 import randomWords from "random-words";
+import { MyTask } from "./type";
 
 const colCount = 10;
 const swimlanesCount = 25;
@@ -11,7 +12,20 @@ const inMemoryBuffer = 10;
 const slowScroll = 8;
 const speedScroll = 16;
 
-const randomWord = () => randomWords(5);
+const randomWord = () => randomWords(1).join(" ");
+const constructTask = () => {
+  const taskName = randomWords(1).join(" ");
+  const taskId = Math.random();
+  return {
+    id: Math.random(),
+    label: taskName,
+    extra: {
+      name: taskName,
+      id: taskId,
+      projectName: randomWords(1).join(" "),
+    } as MyTask,
+  };
+};
 
 const constructDetail = () => ({ id: Math.random(), label: randomWord() });
 const constructDetails = (count: any) =>
@@ -30,7 +44,7 @@ const computeState = () =>
           ...col,
           count: taskCount,
           tasks: constructDetails(taskCount).map((task) => ({
-            ...task,
+            ...constructTask(),
             colId: col.id,
             swimlaneId: swimlane.id,
           })),

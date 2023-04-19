@@ -83,9 +83,9 @@ export interface KanbanContextInterface<
   dragRef: React.RefObject<HTMLDivElement>;
 }
 
-export interface DropParams {
+export interface DropParams<TaskDetails = { id: Id }> {
   from: { colId: Id; swimlaneId: Id };
-  task: Task;
+  task: Task<TaskDetails>;
   to: { colId: Id; swimlaneId: Id };
 }
 

@@ -1,4 +1,4 @@
-import { MutableRefObject } from "react";
+import React, { MutableRefObject } from "react";
 
 type ScrollDirection = "top" | "bottom" | "left" | "right";
 export type SwimlaneRef = MutableRefObject<HTMLDivElement | undefined>;

@@ -1,17 +1,29 @@
-import { FC, useCallback, useRef } from "react";
+import React, { FC, ReactNode, useCallback, useRef } from "react";
 import { Swimlane } from "./KanbanComponents";
 import { KanbanContext } from "./KanbanContext";
 import { VirtualizedList } from "./VirtualizedList";
 import cx from "./index.module.css";
 import { UseKanbanStateParam, useKanbanState } from "./kanban-state";
 import { inMemoryBuffer } from "./knob";
+import { Id, Task } from "./type";
 
-export const KanbanBoard: FC<UseKanbanStateParam> = ({
+export interface KanbanBoardProps<GenericTask extends { id: Id }>
+  extends UseKanbanStateParam<Task<GenericTask>> {
+  taskCardRenderer: FC<{
+    id: GenericTask["id"];
+    extra: GenericTask;
+    highlight: boolean;
+  }>;
+  children?: ReactNode;
+}
+
+export const KanbanBoard = <GenericTask extends { id: Id }>({
   isDropAllowed,
   fetchData,
-}) => {
+  taskCardRenderer,
+}: KanbanBoardProps<GenericTask>): JSX.Element => {
   const { kanbanState, kanbanActions, drag, setDrag, swimlanesRef } =
-    useKanbanState({ isDropAllowed, fetchData });
+    useKanbanState<Task>({ isDropAllowed, fetchData });
   const swimlaneIds = Object.keys(kanbanState);
   const dragRef = useRef();
 
@@ -61,6 +73,7 @@ export const KanbanBoard: FC<UseKanbanStateParam> = ({
                 swimlaneId={swimlaneIds[index]}
                 kanbanState={kanbanState}
                 key={swimlaneIds[index]}
+                taskCardRenderer={taskCardRenderer}
               />
             </div>
           )}

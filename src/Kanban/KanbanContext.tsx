@@ -1,5 +1,5 @@
 import { AnyAction, PayloadAction, createSlice } from "@reduxjs/toolkit";
-import {
+import React, {
   Context,
   Dispatch,
   FC,
@@ -7,17 +7,19 @@ import {
   createContext,
   useEffect,
 } from "react";
-import { DropParams, KanbanBoardState, PurgeAction, Task } from "./type";
+import { DropParams, Id, KanbanBoardState, PurgeAction, Task } from "./type";
 
 type KanbanActions = {
   handleDrop: (params: DropParams) => void;
   purgeData: (params: PurgeAction) => void;
 };
-export interface KanbanContextParams {
-  dragTask: Task | null;
-  setTask: (task: Task | null) => void;
-  isDropAllowed: (params: DropParams) => boolean | Promise<boolean>;
-  kanbanState: KanbanBoardState | null;
+export interface KanbanContextParams<TaskDetails extends unknown = any> {
+  dragTask: Task<TaskDetails> | null;
+  setTask: (task: Task<TaskDetails> | null) => void;
+  isDropAllowed: (
+    params: DropParams<TaskDetails>
+  ) => boolean | Promise<boolean>;
+  kanbanState: KanbanBoardState<TaskDetails> | null;
   dragRef: MutableRefObject<any> | null;
   kanbanActions: KanbanActions;
 }

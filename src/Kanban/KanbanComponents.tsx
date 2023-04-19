@@ -1,52 +1,59 @@
-import { FC, memo, useCallback, useLayoutEffect, useState } from "react";
+import React, { FC, memo, useCallback, useLayoutEffect, useState } from "react";
 import { withKanbanContext } from "./KanbanContext";
 import { VirtualizedList } from "./VirtualizedList";
 import cx from "./index.module.css";
 import { highlightInterval } from "./knob";
 import { Task as ITask, Id, KanbanBoardState, KanbanCol } from "./type";
+import { Task } from "./type";
 
 interface TaskProps {
   task: ITask;
   highlight: boolean;
+  taskCardRenderer: FC<{
+    id: Task["id"];
+    extra: Task["extra"];
+    highlight: boolean;
+  }>;
 }
 
-const Task = withKanbanContext<TaskProps>(({ task, setTask, highlight }) => {
-  const [drag, setDrag] = useState(false);
-  const [shouldHighlight, setShouldHighlight] = useState(false);
-  useLayoutEffect(() => {
-    const timerId = setTimeout(() => {
-      setShouldHighlight(highlight);
-    }, 25);
-    return () => clearTimeout(timerId);
-  }, [highlight]);
-  return (
-    <div
-      id={task.id + ""}
-      className={`${cx.taskWrapper} ${drag ? cx.drag : ""} ${
-        shouldHighlight ? cx.highlight : ""
-      }`}
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData("text/plan", JSON.stringify({ task }));
-        e.dataTransfer.dropEffect = "move";
-        setTask(task);
-        setDrag(true);
-      }}
-      onDragEnd={(e) => {
-        e.dataTransfer.clearData();
-        setTask(null);
-        setDrag(false);
-      }}
-    >
-      <div className={cx.task}>
-        <div>
-          <div className={cx.circle} />
-        </div>
-        <div className={cx.taskTitle}>{task.label}</div>
+const TaskCardRenderer = withKanbanContext<TaskProps>(
+  ({ task, setTask, highlight, taskCardRenderer: ConsumerTaskRenderer }) => {
+    const [drag, setDrag] = useState(false);
+    const [shouldHighlight, setShouldHighlight] = useState(false);
+    useLayoutEffect(() => {
+      const timerId = setTimeout(() => {
+        setShouldHighlight(highlight);
+      }, 25);
+      return () => clearTimeout(timerId);
+    }, [highlight]);
+    return (
+      <div
+        id={task.id + ""}
+        className={`${cx.taskWrapper} ${drag ? cx.drag : ""} ${
+          shouldHighlight ? cx.highlight : ""
+        }`}
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData("text/plan", JSON.stringify({ task }));
+          e.dataTransfer.dropEffect = "move";
+          setTask(task);
+          setDrag(true);
+        }}
+        onDragEnd={(e) => {
+          e.dataTransfer.clearData();
+          setTask(null);
+          setDrag(false);
+        }}
+      >
+        <ConsumerTaskRenderer
+          id={task.id}
+          extra={task.extra}
+          highlight={shouldHighlight || drag}
+        />
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
 interface CounterProps {
   count: number;
@@ -102,11 +109,16 @@ const Counter: FC<CounterProps> = ({ count, className }) => {
 interface ColProps {
   col: KanbanCol;
   swimlaneId: Id;
+  taskCardRenderer: FC<{
+    id: Task["id"];
+    extra: Task["extra"];
+    highlight: boolean;
+  }>;
 }
 
 const Col = withKanbanContext<ColProps>(
   memo(
-    ({ col, swimlaneId, kanbanActions, setTask }) => {
+    ({ col, swimlaneId, kanbanActions, setTask, taskCardRenderer }) => {
       const [oldTaskIds, setOldTaskIds] = useState(
         col.tasks.map((task) => task.id)
       );
@@ -157,9 +169,10 @@ const Col = withKanbanContext<ColProps>(
                 renderItem={({ index, style }) => {
                   return (
                     <div style={style} key={col.tasks[index].id}>
-                      <Task
+                      <TaskCardRenderer
                         task={col.tasks[index]}
                         highlight={!oldTaskIds.includes(col.tasks[index].id)}
+                        taskCardRenderer={taskCardRenderer}
                       />
                     </div>
                   );
@@ -182,10 +195,15 @@ const Col = withKanbanContext<ColProps>(
 interface RowProps {
   swimlaneId: Id;
   kanbanState: KanbanBoardState;
+  taskCardRenderer: FC<{
+    id: Task["id"];
+    extra: any;
+    highlight: boolean;
+  }>;
 }
 
-export const Swimlane = withKanbanContext<RowProps>(
-  ({ swimlaneId, kanbanState }) => {
+export const Swimlane = withKanbanContext(
+  ({ swimlaneId, kanbanState, taskCardRenderer }: RowProps) => {
     const swimlane = kanbanState[swimlaneId];
     return (
       <div className={cx.row}>
@@ -195,7 +213,12 @@ export const Swimlane = withKanbanContext<RowProps>(
         </div>
         <div className={cx.colWrapper}>
           {Object.values(swimlane.cols).map((col) => (
-            <Col col={col} key={col.id} swimlaneId={swimlaneId} />
+            <Col
+              col={col}
+              key={col.id}
+              swimlaneId={swimlaneId}
+              taskCardRenderer={taskCardRenderer}
+            />
           ))}
         </div>
       </div>

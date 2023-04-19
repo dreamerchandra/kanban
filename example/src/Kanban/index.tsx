@@ -1,7 +1,8 @@
-import { KanbanBoard } from "kanban";
+import KanbanBoard from "../../../src/Kanban";
 import "kanban/dist/style.css";
 import { getData } from "./stub";
-
+import cx from "./index.module.css";
+import { MyTask } from "./type";
 const isAllowedBE = (): Promise<boolean> => {
   return new Promise((res, rej) => {
     setTimeout(() => {
@@ -19,7 +20,22 @@ const fetchData = (): Promise<any> => {
 };
 
 function Kanban() {
-  return <KanbanBoard isDropAllowed={isAllowedBE} fetchData={fetchData} />;
+  return (
+    <KanbanBoard<MyTask>
+      isDropAllowed={isAllowedBE}
+      fetchData={fetchData}
+      taskCardRenderer={({ extra, highlight }) => {
+        return (
+          <div className={`${cx.task} ${highlight ? cx.highlight : ""}`}>
+            <div>
+              <div className={cx.circle} />
+            </div>
+            <div className={cx.taskTitle}>{extra.name}</div>
+          </div>
+        );
+      }}
+    />
+  );
 }
 
 export default Kanban;
