@@ -1,3 +1,3 @@
-import { KanbanBoard } from "./Kanban";
+import KanbanBoard from "./Kanban";
 
 export default KanbanBoard;

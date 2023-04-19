@@ -2,34 +2,20 @@ import path from "node:path";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 import {
-  AndDesignVueResolve,
-  AntdResolve,
   ElementPlusResolve,
-  NutuiResolve,
-  VantResolve,
   createStyleImportPlugin,
 } from "vite-plugin-style-import";
 
 export default defineConfig({
-  css: {
-    preprocessorOptions: {
-      less: {
-        javascriptEnabled: true,
-      },
-    },
+  optimizeDeps: {
+    exclude: ["react", "react-dom"],
   },
   plugins: [
     dts({
       insertTypesEntry: true,
     }),
     createStyleImportPlugin({
-      resolves: [
-        AndDesignVueResolve(),
-        VantResolve(),
-        ElementPlusResolve(),
-        NutuiResolve(),
-        AntdResolve(),
-      ],
+      resolves: [ElementPlusResolve()],
     }),
   ],
   build: {
@@ -40,7 +26,7 @@ export default defineConfig({
       fileName: (format) => `kanban.${format}.js`,
     },
     rollupOptions: {
-      external: ["react", "react-dom", "styled-components"],
+      external: ["react", "react-dom"],
       output: {
         globals: {
           react: "React",
