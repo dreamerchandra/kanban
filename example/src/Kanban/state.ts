@@ -33,7 +33,7 @@ const constructDetails = (count: any) =>
 
 const colMeta = constructDetails(colCount);
 
-const computeState = () =>
+export const computeState = () =>
   constructDetails(swimlanesCount).reduce((preRow, swimlane, idx) => {
     const cols = colMeta.reduce((preCol, col) => {
       const taskCount =
@@ -74,3 +74,5 @@ self.onmessage = (e) => {
     self.postMessage({ state });
   }
 };
+
+export {};

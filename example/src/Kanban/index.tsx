@@ -34,6 +34,7 @@ function Kanban() {
           </div>
         );
       }}
+      height={1000}
     />
   );
 }
