@@ -150,7 +150,6 @@ const Col = withKanbanContext<ColProps>(
             e.preventDefault();
             const from = { swimlaneId: task.swimlaneId, colId: task.colId };
             const to = { colId: col.id, swimlaneId };
-            e.dataTransfer.clearData();
             kanbanActions.handleDrop({ from, task, to });
             setTask(null);
           }}
