@@ -11,7 +11,7 @@ interface Props {
   numItems: number;
   itemHeight: number;
   renderItem: (props: { index: number; style: CSSProperties }) => JSX.Element;
-  windowHeight: number;
+  parentHeight: number;
   debounceTimer?: number;
   onScroll?: (start: number, end: number) => void;
   swimlanesRef?: MutableRefObject<any>;
@@ -23,7 +23,7 @@ export const VirtualizedList = forwardRef<HTMLDivElement, Props>(
       numItems,
       itemHeight,
       renderItem,
-      windowHeight,
+      parentHeight,
       debounceTimer = 200,
       onScroll: onPropScroll,
       swimlanesRef,
@@ -33,7 +33,7 @@ export const VirtualizedList = forwardRef<HTMLDivElement, Props>(
     const startIndex = Math.max(Math.floor(scrollTop / itemHeight) - 2, 0);
     const endIndex = Math.min(
       numItems - 1,
-      Math.floor((scrollTop + windowHeight) / itemHeight) + 2
+      Math.floor((scrollTop + parentHeight) / itemHeight) + 2
     );
 
     const items = [];
@@ -61,7 +61,7 @@ export const VirtualizedList = forwardRef<HTMLDivElement, Props>(
     return (
       <div
         className='scroll'
-        style={{ overflowY: "auto", height: `${windowHeight}px` }}
+        style={{ overflowY: "auto", height: `${parentHeight}px` }}
         onScroll={(e) => {
           setScrollTop(e.currentTarget.scrollTop);
           propOnScroll(startIndex, endIndex);

@@ -34,12 +34,14 @@ const TaskCardRenderer = withKanbanContext<TaskProps>(
         }`}
         draggable
         onDragStart={(e) => {
+          e.dataTransfer.clearData();
           e.dataTransfer.setData("text/plan", JSON.stringify({ task }));
           e.dataTransfer.dropEffect = "move";
           setTask(task);
           setDrag(true);
         }}
         onDragEnd={(e) => {
+          e.preventDefault();
           e.dataTransfer.clearData();
           setTask(null);
           setDrag(false);
@@ -145,6 +147,7 @@ const Col = withKanbanContext<ColProps>(
             const { task } = JSON.parse(
               e.dataTransfer.getData("text/plan")
             ) as { task: ITask };
+            e.preventDefault();
             const from = { swimlaneId: task.swimlaneId, colId: task.colId };
             const to = { colId: col.id, swimlaneId };
             e.dataTransfer.clearData();
@@ -162,7 +165,7 @@ const Col = withKanbanContext<ColProps>(
               <VirtualizedList
                 numItems={col.tasks.length}
                 itemHeight={120}
-                windowHeight={384}
+                parentHeight={384}
                 onScroll={useCallback((start, end) => {
                   console.log(start, end);
                 }, [])}

@@ -15,12 +15,14 @@ export interface KanbanBoardProps<GenericTask extends { id: Id }>
     highlight: boolean;
   }>;
   children?: ReactNode;
+  height: number;
 }
 
 export const KanbanBoard = <GenericTask extends { id: Id }>({
   isDropAllowed,
   fetchData,
   taskCardRenderer,
+  height,
 }: KanbanBoardProps<GenericTask>): JSX.Element => {
   const { kanbanState, kanbanActions, drag, setDrag, swimlanesRef } =
     useKanbanState<Task>({ isDropAllowed, fetchData });
@@ -48,7 +50,7 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
           swimlanesRef={swimlanesRef}
           numItems={swimlaneIds.length}
           itemHeight={500}
-          windowHeight={window.innerHeight}
+          parentHeight={height}
           onScroll={useCallback(
             (start, end) => {
               const inMemStart =

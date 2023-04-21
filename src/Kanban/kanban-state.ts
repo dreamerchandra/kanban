@@ -21,12 +21,17 @@ const useScroller = (swimlanesRef: SwimlaneRef) => {
 
 const scrollElement = (
   scrollElementController: ReturnType<typeof useScroller>,
-  event: any
+  event: any,
+  scrollableElement: HTMLElement | undefined
 ) => {
   const offset = 300;
   // Calculate the distance that the mouse has moved since the mousedown event
-  const height = window.screen.availHeight;
-  const width = document.documentElement.clientWidth;
+  const height = scrollableElement
+    ? scrollableElement.clientHeight
+    : window.screen.availHeight;
+  const width = scrollableElement
+    ? scrollableElement.clientWidth
+    : document.documentElement.clientWidth;
   const mouseY = event.clientY;
   const mouseX = event.clientX;
 
@@ -67,8 +72,9 @@ const useDrag = <T extends { id: Id }>(
   const scroller = useScroller(swimlanesRef);
   const setDrag = useCallback(
     (task: T | null) => {
+      const scrollableElement = swimlanesRef.current;
       const initScrollElement = (event: any) => {
-        scrollElement(scroller, event);
+        scrollElement(scroller, event, scrollableElement);
       };
 
       const initListener = () => {
