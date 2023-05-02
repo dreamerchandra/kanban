@@ -1,5 +1,5 @@
 export const colCount = 10;
-export const swimlanesCount = 25;
+export const swimlanesCount = 500;
 export const maxTaskCount = 100;
 export const allowedProbability = 1;
 export const highlightInterval = 1000;

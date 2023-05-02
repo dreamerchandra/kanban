@@ -2,7 +2,7 @@ import randomWords from "random-words";
 import { MyTask } from "./type";
 
 const colCount = 10;
-const swimlanesCount = 25;
+const swimlanesCount = 500;
 const maxTaskCount = 100;
 const allowedProbability = 1;
 const highlightInterval = 1000;

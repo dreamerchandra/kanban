@@ -3,4 +3,15 @@ import { KanbanBoard } from "./KanbanBoard";
 
 export default KanbanBoard;
 export type { UseKanbanStateParam } from "./kanban-state";
-export type { DropParams, KanbanBoardState, PurgeAction } from "./type";
+export type {
+  DropParams,
+  KanbanBoardState,
+  PurgeAction,
+  LayoutFetch,
+  LayoutFetchResponse,
+  SwimlaneFetchParams,
+  PaginatedSwimlaneFetch,
+  KanbanSwimlanes,
+  KanbanColumns,
+} from "./type";
+export type { KanbanContextParams } from "./KanbanContext";

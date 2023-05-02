@@ -13,7 +13,14 @@ import {
   useInit,
 } from "./KanbanContext";
 import { SwimlaneRef, scrollController } from "./smooth-scroll";
-import { DropParams, Id, KanbanBoardState, PurgeAction, Task } from "./type";
+import {
+  DropParams,
+  Id,
+  KanbanBoardState,
+  LayoutFetch,
+  PurgeAction,
+  Task,
+} from "./type";
 
 const useScroller = (swimlanesRef: SwimlaneRef) => {
   return useMemo(() => scrollController(swimlanesRef), [swimlanesRef]);
@@ -98,9 +105,9 @@ const useDrag = <T extends { id: Id }>(
   return { drag, setDrag };
 };
 
-export interface UseKanbanStateParam<GenericTask extends { id: Id }> {
+export interface UseKanbanStateParam {
   isDropAllowed: (params: DropParams) => boolean | Promise<boolean>;
-  fetchData: () => Promise<KanbanBoardState<GenericTask>>;
+  layoutFetch: LayoutFetch;
   onDropSuccess?: (params: DropParams) => void;
   onDropFailed?: (params: DropParams) => void;
 }
@@ -124,8 +131,8 @@ export const useKanbanState = <TaskDetails extends { id: Id }>({
   isDropAllowed,
   onDropSuccess,
   onDropFailed,
-  fetchData,
-}: UseKanbanStateParam<TaskDetails>): {
+  layoutFetch,
+}: UseKanbanStateParam): {
   kanbanState: KanbanBoardState;
   kanbanActions: KanbanContextParams["kanbanActions"];
   drag: Task<TaskDetails> | null;
@@ -136,7 +143,7 @@ export const useKanbanState = <TaskDetails extends { id: Id }>({
   const swimlanesRef = useRef<HTMLDivElement>();
   const { drag, setDrag } = useDrag<Task<TaskDetails>>(swimlanesRef);
 
-  useInit(dispatch, fetchData, stateKanbanActions);
+  useInit(dispatch, layoutFetch, stateKanbanActions);
 
   const kanbanActions = useMemo((): KanbanContextParams["kanbanActions"] => {
     return {
@@ -167,6 +174,9 @@ export const useKanbanState = <TaskDetails extends { id: Id }>({
       },
       purgeData: (params: PurgeAction) => {
         dispatch(stateKanbanActions.purgeData(params));
+      },
+      updateSwimlaneTask: (params: KanbanBoardState) => {
+        dispatch(stateKanbanActions.updateSwimlaneTask(params));
       },
     };
   }, [isDropAllowed, onDropFailed, onDropSuccess]);

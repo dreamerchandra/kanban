@@ -1662,7 +1662,7 @@ json5@^2.2.2:
     array-includes "^3.1.5"
     object.assign "^4.1.3"
 
-"kanban@file:..":
+kanban@/Users/chandrakumar/Desktop/rocketlane/kanban:
   version "0.0.0"
   dependencies:
     "@reduxjs/toolkit" "^1.4.0"

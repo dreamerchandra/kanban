@@ -3,7 +3,7 @@ import { withKanbanContext } from "./KanbanContext";
 import { VirtualizedList } from "./VirtualizedList";
 import cx from "./index.module.css";
 import { highlightInterval } from "./knob";
-import { Task as ITask, Id, KanbanBoardState, KanbanCol } from "./type";
+import { Task as ITask, Id, KanbanBoardState, KanbanColumns } from "./type";
 import { Task } from "./type";
 
 interface TaskProps {
@@ -109,7 +109,7 @@ const Counter: FC<CounterProps> = ({ count, className }) => {
 };
 
 interface ColProps {
-  col: KanbanCol;
+  col: KanbanColumns;
   swimlaneId: Id;
   taskCardRenderer: FC<{
     id: Task["id"];

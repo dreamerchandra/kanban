@@ -7,11 +7,20 @@ import React, {
   createContext,
   useEffect,
 } from "react";
-import { DropParams, Id, KanbanBoardState, PurgeAction, Task } from "./type";
+import {
+  DropParams,
+  Id,
+  KanbanBoardState,
+  LayoutFetch,
+  LayoutFetchResponse,
+  PurgeAction,
+  Task,
+} from "./type";
 
 type KanbanActions = {
   handleDrop: (params: DropParams) => void;
   purgeData: (params: PurgeAction) => void;
+  updateSwimlaneTask: (params: KanbanBoardState) => void;
 };
 export interface KanbanContextParams<TaskDetails extends unknown = any> {
   dragTask: Task<TaskDetails> | null;
@@ -36,6 +45,7 @@ const handleDrop = (
   state[to.swimlaneId].cols[to.colId].count += 1;
   state[to.swimlaneId].cols[to.colId].tasks.unshift({
     ...task,
+    isDropped: true,
     colId: to.colId,
     swimlaneId: to.swimlaneId,
   });
@@ -66,8 +76,8 @@ const purgeData = (
       if (col) {
         // if start and end aren't specified, then we purge all
         if (startOffset == null && endOffset == null) {
-          console.log("purging all");
-          col.tasks = [];
+          console.log("purging expect dropped task");
+          col.tasks = col.tasks.filter((task) => task.isDropped);
           return;
         }
         // if start and end are specified then we purge only those that are not in view
@@ -83,11 +93,54 @@ const purgeData = (
   allSwimlanes.forEach(purgeNotInView);
 };
 
-const init = (
+const initLayout = <T extends { id: Id }, R extends { id: Id }>(
   state: KanbanBoardState,
-  actions: PayloadAction<KanbanBoardState>
+  actions: PayloadAction<LayoutFetchResponse<T, R>>
 ) => {
-  state = actions.payload;
+  actions.payload.swimlaneIds.forEach((swimlane) => {
+    state[swimlane.id] = {
+      count: swimlane.count,
+      cols: {},
+      label: swimlane.label,
+      extra: swimlane.extra,
+      id: swimlane.id,
+    };
+    actions.payload.columnIds.forEach((column) => {
+      state[swimlane.id].cols[column.id] = {
+        count: 0,
+        tasks: [],
+        extra: column.extra,
+        id: column.id,
+        label: column.label,
+      };
+      return state;
+    });
+  });
+
+  return state;
+};
+
+const updateSwimlaneTask = <T extends { id: Id }>(
+  state: KanbanBoardState,
+  actions: PayloadAction<KanbanBoardState<T>>
+) => {
+  const swimlanes = actions.payload;
+  const swimlanesIdsToUpdate = Object.keys(actions.payload);
+  swimlanesIdsToUpdate.forEach((id) => {
+    state[id].count = swimlanes[id].count;
+    const colIds = Object.keys(swimlanes[id].cols);
+    colIds.forEach((colId) => {
+      state[id].cols[colId].count = swimlanes[id].cols[colId].count;
+      state[id].cols[colId].extra = swimlanes[id].cols[colId].extra;
+      state[id].cols[colId].id = swimlanes[id].cols[colId].id;
+      state[id].cols[colId].label = swimlanes[id].cols[colId].label;
+      state[id].cols[colId].tasks = [
+        ...(state[id].cols[colId].tasks.filter((task) => task.isDropped) || []),
+        ...swimlanes[id].cols[colId].tasks,
+      ];
+    });
+  });
+
   return state;
 };
 
@@ -96,8 +149,9 @@ export const kanbanSlice = createSlice({
   name: "kanban-board-slice",
   reducers: {
     handleDrop,
-    init,
+    initLayout,
     purgeData,
+    updateSwimlaneTask,
   },
 });
 export const stateKanbanActions = kanbanSlice.actions;
@@ -105,14 +159,14 @@ export const kanbanReducer = kanbanSlice.reducer;
 
 export const useInit = (
   dispatch: Dispatch<AnyAction>,
-  fetchData: () => Promise<KanbanBoardState>,
-  actions: typeof kanbanSlice["actions"]
+  layoutFetch: LayoutFetch,
+  actions: (typeof kanbanSlice)["actions"]
 ) => {
   useEffect(() => {
-    fetchData().then((state) => {
-      dispatch(actions.init(state));
+    layoutFetch().then((state) => {
+      dispatch(actions.initLayout(state));
     });
-  }, [actions, dispatch, fetchData]);
+  }, [actions, dispatch, layoutFetch]);
 };
 
 export const KanbanContext = createContext({

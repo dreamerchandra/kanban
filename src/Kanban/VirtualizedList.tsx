@@ -2,7 +2,10 @@ import React, {
   CSSProperties,
   MutableRefObject,
   forwardRef,
+  useEffect,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { debounce } from "./util";
@@ -15,6 +18,7 @@ interface Props {
   debounceTimer?: number;
   onScroll?: (start: number, end: number) => void;
   swimlanesRef?: MutableRefObject<any>;
+  onMount?: (start: number, end: number) => void;
 }
 
 export const VirtualizedList = forwardRef<HTMLDivElement, Props>(
@@ -53,10 +57,23 @@ export const VirtualizedList = forwardRef<HTMLDivElement, Props>(
     const propOnScroll = useMemo(
       () =>
         debounce((start, end) => {
+          console.log("pushing to parent scroll");
           onPropScroll?.(start, end);
         }, debounceTimer),
       [debounceTimer, onPropScroll]
     );
+
+    useLayoutEffect(() => {
+      // we need to send to parent how many items should it fetch from background
+      // we duplicated start and end because its not inside useState so the latest values won't get picked up
+      const start = Math.max(Math.floor(scrollTop / itemHeight) - 2, 0);
+      const end = Math.min(
+        numItems - 1,
+        Math.floor((scrollTop + parentHeight) / itemHeight) + 2
+      );
+      props.onMount?.(start, end);
+      // we aren't bothered about dynamic itemHeight on initial mount so we can ignore it in deps
+    }, [numItems]);
 
     return (
       <div
