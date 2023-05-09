@@ -30,6 +30,7 @@
 
 export type Id = string | number;
 
+export type NetworkState = "idle" | "loading" | "failed" | "success";
 export interface Task<TaskDetails = { id: Id }> {
   id: Id;
   colId: Id;
@@ -48,6 +49,11 @@ export interface KanbanColumns<
   count: number; // purging does not update count. This is to give an heads up on number of tasks in a col
   extra: ColDetails;
   tasks: Task<TaskDetails>[];
+  networkState: NetworkState;
+  backendPagination: {
+    memoryInBlock: number;
+    blockSize: number;
+  };
 }
 
 export interface KanbanSwimlanes<
@@ -59,6 +65,7 @@ export interface KanbanSwimlanes<
   label: string;
   count: number;
   extra: SwimlanesDetails;
+  networkState: NetworkState;
   cols: {
     [key: string]: KanbanColumns<ColDetails, TaskDetails>;
   };
@@ -101,6 +108,15 @@ export interface PurgeAction {
   endOffset?: number;
 }
 
+export interface ColumnPaginationAction<TaskDetails = { id: Id }> {
+  swimlaneId: Id;
+  columnId: Id;
+  tasks: Task<TaskDetails>[];
+}
+
+export type UpdateSwimlaneParams<T = { id: Id }> =
+  KanbanBoardState<T>;
+
 export type LayoutFetch = <
   SwimlaneExtra = { id: Id },
   ColumnExtra = { id: Id }
@@ -108,11 +124,11 @@ export type LayoutFetch = <
 
 export type PaginatedSwimlaneFetch = <TaskDetails>(
   params: SwimlaneFetchParams
-) => Promise<KanbanBoardState<TaskDetails>>;
+) => Promise<UpdateSwimlaneParams<TaskDetails>>;
 
 export type PaginatedSwimlaneColumnFetch = <TaskDetails>(
   params: PaginatedSwimlaneColumnFetchParams
-) => Promise<Task<TaskDetails>>;
+) => Promise<Task<TaskDetails>[]>;
 
 export interface SwimlaneFetchParams {
   swimlaneIds: Id[];
@@ -122,22 +138,19 @@ export interface PaginatedSwimlaneColumnFetchParams {
   swimlaneId: Id;
   startOffset: number;
   endOffset: number;
+  columnId: Id;
 }
 
 export interface LayoutFetchResponse<SwimlaneExtra, ColumnExtra> {
-  swimlaneIds: [
-    {
-      id: Id;
-      count: number;
-      label: string;
-      extra: SwimlaneExtra;
-    }
-  ];
-  columnIds: [
-    {
-      id: Id;
-      extra: ColumnExtra;
-      label: string;
-    }
-  ];
+  swimlaneIds: {
+    id: Id;
+    count: number;
+    label: string;
+    extra: SwimlaneExtra;
+  }[];
+  columnIds: {
+    id: Id;
+    extra: ColumnExtra;
+    label: string;
+  }[];
 }

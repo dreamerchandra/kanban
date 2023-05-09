@@ -20,6 +20,7 @@ import {
   LayoutFetch,
   PurgeAction,
   Task,
+  UpdateSwimlaneParams,
 } from "./type";
 
 const useScroller = (swimlanesRef: SwimlaneRef) => {
@@ -175,8 +176,11 @@ export const useKanbanState = <TaskDetails extends { id: Id }>({
       purgeData: (params: PurgeAction) => {
         dispatch(stateKanbanActions.purgeData(params));
       },
-      updateSwimlaneTask: (params: KanbanBoardState) => {
-        dispatch(stateKanbanActions.updateSwimlaneTask(params));
+      updatePaginatedSwimlane: (params: UpdateSwimlaneParams) => {
+        dispatch(stateKanbanActions.updatePaginatedSwimlane(params));
+      },
+      updatePaginatedColumn: (params) => {
+        dispatch(stateKanbanActions.updatePaginatedColumn(params));
       },
     };
   }, [isDropAllowed, onDropFailed, onDropSuccess]);

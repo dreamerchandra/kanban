@@ -1,9 +1,15 @@
-import React, { FC, memo, useCallback, useLayoutEffect, useState } from "react";
+import React, { FC, memo, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { withKanbanContext } from "./KanbanContext";
 import { VirtualizedList } from "./VirtualizedList";
 import cx from "./index.module.css";
 import { highlightInterval } from "./knob";
-import { Task as ITask, Id, KanbanBoardState, KanbanColumns } from "./type";
+import {
+  Task as ITask,
+  Id,
+  KanbanBoardState,
+  KanbanColumns,
+  PaginatedSwimlaneColumnFetch,
+} from "./type";
 import { Task } from "./type";
 
 interface TaskProps {
@@ -116,14 +122,23 @@ interface ColProps {
     extra: Task["extra"];
     highlight: boolean;
   }>;
+  paginatedSwimlaneColumnFetch: PaginatedSwimlaneColumnFetch;
 }
 
 const Col = withKanbanContext<ColProps>(
   memo(
-    ({ col, swimlaneId, kanbanActions, setTask, taskCardRenderer }) => {
+    ({
+      col,
+      swimlaneId,
+      kanbanActions,
+      setTask,
+      taskCardRenderer,
+      paginatedSwimlaneColumnFetch,
+    }) => {
       const [oldTaskIds, setOldTaskIds] = useState(
         col.tasks.map((task) => task.id)
       );
+      const ref = useRef<HTMLDivElement>(null);
       useLayoutEffect(() => {
         const timerId = setTimeout(() => {
           setOldTaskIds(col.tasks.map((task) => task.id));
@@ -151,6 +166,8 @@ const Col = withKanbanContext<ColProps>(
             const from = { swimlaneId: task.swimlaneId, colId: task.colId };
             const to = { colId: col.id, swimlaneId };
             kanbanActions.handleDrop({ from, task, to });
+            // scroll to top
+            ref.current?.scrollTo(0, 0);
             setTask(null);
           }}
         >
@@ -162,12 +179,38 @@ const Col = withKanbanContext<ColProps>(
             </div>
             <div className={cx.tasksContainer}>
               <VirtualizedList
+                ref={ref}
+                name='column'
                 numItems={col.tasks.length}
                 itemHeight={120}
                 parentHeight={384}
-                onScroll={useCallback((start, end) => {
-                  console.log(start, end);
-                }, [])}
+                onScroll={useCallback(
+                  async (start, end) => {
+                    const startOffset =
+                      col.backendPagination.blockSize *
+                      col.backendPagination.memoryInBlock;
+                    const endOffset =
+                      startOffset + col.backendPagination.blockSize;
+                    const hasScrolled80Percent = end > col.tasks.length * 0.8;
+                    if (hasScrolled80Percent) {
+                      console.log("fetching", startOffset, endOffset);
+                      const data = await paginatedSwimlaneColumnFetch<
+                        Task["extra"]
+                      >({
+                        swimlaneId: swimlaneId,
+                        endOffset,
+                        startOffset,
+                        columnId: col.id,
+                      });
+                      kanbanActions.updatePaginatedColumn({
+                        swimlaneId,
+                        columnId: col.id,
+                        tasks: data,
+                      });
+                    }
+                  },
+                  [col]
+                )}
                 renderItem={({ index, style }) => {
                   return (
                     <div style={style} key={col.tasks[index].id}>
@@ -202,10 +245,16 @@ interface RowProps {
     extra: any;
     highlight: boolean;
   }>;
+  swimlaneColumnFetch: PaginatedSwimlaneColumnFetch;
 }
 
 export const Swimlane = withKanbanContext(
-  ({ swimlaneId, kanbanState, taskCardRenderer }: RowProps) => {
+  ({
+    swimlaneId,
+    kanbanState,
+    taskCardRenderer,
+    swimlaneColumnFetch,
+  }: RowProps) => {
     const swimlane = kanbanState[swimlaneId];
     return (
       <div className={cx.row}>
@@ -220,6 +269,7 @@ export const Swimlane = withKanbanContext(
               key={col.id}
               swimlaneId={swimlaneId}
               taskCardRenderer={taskCardRenderer}
+              paginatedSwimlaneColumnFetch={swimlaneColumnFetch}
             />
           ))}
         </div>

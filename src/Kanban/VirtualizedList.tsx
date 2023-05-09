@@ -19,6 +19,7 @@ interface Props {
   onScroll?: (start: number, end: number) => void;
   swimlanesRef?: MutableRefObject<any>;
   onMount?: (start: number, end: number) => void;
+  name: string;
 }
 
 export const VirtualizedList = forwardRef<HTMLDivElement, Props>(
@@ -80,6 +81,7 @@ export const VirtualizedList = forwardRef<HTMLDivElement, Props>(
         className='scroll'
         style={{ overflowY: "auto", height: `${parentHeight}px` }}
         onScroll={(e) => {
+          e.stopPropagation();
           setScrollTop(e.currentTarget.scrollTop);
           propOnScroll(startIndex, endIndex);
         }}

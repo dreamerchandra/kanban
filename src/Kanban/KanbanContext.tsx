@@ -8,6 +8,7 @@ import React, {
   useEffect,
 } from "react";
 import {
+  ColumnPaginationAction,
   DropParams,
   Id,
   KanbanBoardState,
@@ -15,12 +16,14 @@ import {
   LayoutFetchResponse,
   PurgeAction,
   Task,
+  UpdateSwimlaneParams,
 } from "./type";
 
 type KanbanActions = {
   handleDrop: (params: DropParams) => void;
   purgeData: (params: PurgeAction) => void;
-  updateSwimlaneTask: (params: KanbanBoardState) => void;
+  updatePaginatedSwimlane: (params: UpdateSwimlaneParams) => void;
+  updatePaginatedColumn: (params: ColumnPaginationAction) => void;
 };
 export interface KanbanContextParams<TaskDetails extends unknown = any> {
   dragTask: Task<TaskDetails> | null;
@@ -76,10 +79,12 @@ const purgeData = (
       if (col) {
         // if start and end aren't specified, then we purge all
         if (startOffset == null && endOffset == null) {
+          col.backendPagination.memoryInBlock = 0;
           console.log("purging expect dropped task");
           col.tasks = col.tasks.filter((task) => task.isDropped);
           return;
         }
+        col.backendPagination.memoryInBlock = 1;
         // if start and end are specified then we purge only those that are not in view
         col.tasks = col.tasks.filter((_, idx) => {
           if (startOffset! <= idx && idx <= endOffset!) {
@@ -104,6 +109,7 @@ const initLayout = <T extends { id: Id }, R extends { id: Id }>(
       label: swimlane.label,
       extra: swimlane.extra,
       id: swimlane.id,
+      networkState: "idle",
     };
     actions.payload.columnIds.forEach((column) => {
       state[swimlane.id].cols[column.id] = {
@@ -112,6 +118,11 @@ const initLayout = <T extends { id: Id }, R extends { id: Id }>(
         extra: column.extra,
         id: column.id,
         label: column.label,
+        networkState: "idle",
+        backendPagination: {
+          blockSize: 10,
+          memoryInBlock: 0,
+        },
       };
       return state;
     });
@@ -120,14 +131,15 @@ const initLayout = <T extends { id: Id }, R extends { id: Id }>(
   return state;
 };
 
-const updateSwimlaneTask = <T extends { id: Id }>(
+const updatePaginatedSwimlane = <T extends { id: Id }>(
   state: KanbanBoardState,
-  actions: PayloadAction<KanbanBoardState<T>>
+  actions: PayloadAction<UpdateSwimlaneParams<T>>
 ) => {
   const swimlanes = actions.payload;
   const swimlanesIdsToUpdate = Object.keys(actions.payload);
   swimlanesIdsToUpdate.forEach((id) => {
     state[id].count = swimlanes[id].count;
+    state[id].networkState = "success";
     const colIds = Object.keys(swimlanes[id].cols);
     colIds.forEach((colId) => {
       state[id].cols[colId].count = swimlanes[id].cols[colId].count;
@@ -138,9 +150,31 @@ const updateSwimlaneTask = <T extends { id: Id }>(
         ...(state[id].cols[colId].tasks.filter((task) => task.isDropped) || []),
         ...swimlanes[id].cols[colId].tasks,
       ];
+      state[id].cols[colId].networkState = "success";
+      state[id].cols[colId].backendPagination = {
+        blockSize: 10,
+        memoryInBlock: 1,
+      };
     });
   });
 
+  return state;
+};
+
+const updatePaginatedColumn = <T extends { id: Id }>(
+  state: KanbanBoardState,
+  actions: PayloadAction<ColumnPaginationAction<T>>
+) => {
+  const { swimlaneId, tasks, columnId } = actions.payload;
+  const existingTaskId = state[swimlaneId].cols[columnId].tasks.map(
+    (t) => t.id
+  );
+  const uniqueTasks = tasks.filter((task) => !existingTaskId.includes(task.id));
+  state[swimlaneId].cols[columnId].backendPagination.memoryInBlock += 1;
+  state[swimlaneId].cols[columnId].tasks = [
+    ...state[swimlaneId].cols[columnId].tasks,
+    ...uniqueTasks,
+  ];
   return state;
 };
 
@@ -151,7 +185,8 @@ export const kanbanSlice = createSlice({
     handleDrop,
     initLayout,
     purgeData,
-    updateSwimlaneTask,
+    updatePaginatedSwimlane,
+    updatePaginatedColumn,
   },
 });
 export const stateKanbanActions = kanbanSlice.actions;

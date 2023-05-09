@@ -11,6 +11,7 @@ import {
   PaginatedSwimlaneFetch,
   Task,
 } from "./type";
+import { getKanbanFetchStatus, useKanbanFetchStatus } from "./utils";
 
 export interface KanbanBoardProps<GenericTask extends { id: Id }>
   extends UseKanbanStateParam {
@@ -35,8 +36,10 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
 }: KanbanBoardProps<GenericTask>): JSX.Element => {
   const { kanbanState, kanbanActions, drag, setDrag, swimlanesRef } =
     useKanbanState<Task>({ isDropAllowed, layoutFetch: fetchData });
-  const swimlaneIds = Object.keys(kanbanState);
+  const kanbanFetchStatusRef = getKanbanFetchStatus(kanbanState);
+  const swimlaneIds = Object.keys(kanbanFetchStatusRef);
   const dragRef = useRef();
+
 
   return (
     <KanbanContext.Provider
@@ -56,6 +59,7 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
         }}
       >
         <VirtualizedList
+          name='swimlanes'
           swimlanesRef={swimlanesRef}
           numItems={swimlaneIds.length}
           itemHeight={500}
@@ -75,16 +79,15 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
                 inMemEnd + 1
               );
               const res = await swimlaneFetch<GenericTask>({
-                swimlaneIds: swimlanesInViewIds,
+                swimlaneIds: swimlanesInViewIds.filter((id) => 
+                  kanbanFetchStatusRef[id].networkState !== 'success'
+                ),
               });
-              kanbanActions.updateSwimlaneTask(res);
+              kanbanActions.updatePaginatedSwimlane(res);
 
               kanbanActions.purgeData({
                 inView: {
-                  swimlaneIds: swimlanesInViewIds.slice(
-                    inMemStart,
-                    inMemEnd + 1
-                  ),
+                  swimlaneIds: swimlanesInViewIds,
                 },
                 endOffset: 10,
                 startOffset: 0,
@@ -109,7 +112,7 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
                 const res = await swimlaneFetch<GenericTask>({
                   swimlaneIds: swimlanesInViewIds,
                 });
-                kanbanActions.updateSwimlaneTask(res);
+                kanbanActions.updatePaginatedSwimlane(res);
               });
             },
             [swimlaneIds]
@@ -121,6 +124,7 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
                 kanbanState={kanbanState}
                 key={swimlaneIds[index]}
                 taskCardRenderer={taskCardRenderer}
+                swimlaneColumnFetch={swimlaneColumnFetch}
               />
             </div>
           )}
