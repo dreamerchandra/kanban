@@ -11,7 +11,7 @@ import {
   PaginatedSwimlaneFetch,
   Task,
 } from "./type";
-import { getKanbanFetchStatus, useKanbanFetchStatus } from "./utils";
+import { getKanbanFetchStatus } from "./utils";
 
 export interface KanbanBoardProps<GenericTask extends { id: Id }>
   extends UseKanbanStateParam {
@@ -39,7 +39,6 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
   const kanbanFetchStatusRef = getKanbanFetchStatus(kanbanState);
   const swimlaneIds = Object.keys(kanbanFetchStatusRef);
   const dragRef = useRef();
-
 
   return (
     <KanbanContext.Provider
@@ -78,13 +77,17 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
                 inMemStart,
                 inMemEnd + 1
               );
-              const res = await swimlaneFetch<GenericTask>({
-                swimlaneIds: swimlanesInViewIds.filter((id) => 
-                  kanbanFetchStatusRef[id].networkState !== 'success'
-                ),
-              });
-              kanbanActions.updatePaginatedSwimlane(res);
-
+              const swimlanesToBeFetched = swimlanesInViewIds.filter(
+                (id) => kanbanFetchStatusRef[id].networkState !== "success"
+              );
+              if (swimlanesToBeFetched.length > 0) {
+                const res = await swimlaneFetch<GenericTask>({
+                  swimlaneIds: swimlanesToBeFetched,
+                  endOffset: end,
+                  startOffset: start,
+                });
+                kanbanActions.updatePaginatedSwimlane(res);
+              }
               kanbanActions.purgeData({
                 inView: {
                   swimlaneIds: swimlanesInViewIds,
@@ -97,6 +100,9 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
           )}
           onMount={useCallback(
             async (start, end) => {
+              if (end === -1) {
+                return;
+              }
               requestAnimationFrame(async () => {
                 const inMemStart =
                   start - inMemoryBuffer > 0 ? start - inMemoryBuffer : 0;
@@ -111,6 +117,8 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
                 console.log(start, end);
                 const res = await swimlaneFetch<GenericTask>({
                   swimlaneIds: swimlanesInViewIds,
+                  endOffset: end,
+                  startOffset: start,
                 });
                 kanbanActions.updatePaginatedSwimlane(res);
               });

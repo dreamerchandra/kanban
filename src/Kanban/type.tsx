@@ -132,6 +132,8 @@ export type PaginatedSwimlaneColumnFetch = <TaskDetails>(
 
 export interface SwimlaneFetchParams {
   swimlaneIds: Id[];
+  startOffset: number;
+  endOffset: number;
 }
 
 export interface PaginatedSwimlaneColumnFetchParams {
@@ -142,15 +144,16 @@ export interface PaginatedSwimlaneColumnFetchParams {
 }
 
 export interface LayoutFetchResponse<SwimlaneExtra, ColumnExtra> {
-  swimlaneIds: {
+  swimlane: {
     id: Id;
     count: number;
     label: string;
     extra: SwimlaneExtra;
-  }[];
-  columnIds: {
-    id: Id;
-    extra: ColumnExtra;
-    label: string;
+    column: {
+      id: Id;
+      count: number;
+      extra: ColumnExtra;
+      label: string;
+    }[];
   }[];
 }

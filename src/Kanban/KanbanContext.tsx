@@ -12,6 +12,7 @@ import {
   DropParams,
   Id,
   KanbanBoardState,
+  KanbanSwimlanes,
   LayoutFetch,
   LayoutFetchResponse,
   PurgeAction,
@@ -102,30 +103,30 @@ const initLayout = <T extends { id: Id }, R extends { id: Id }>(
   state: KanbanBoardState,
   actions: PayloadAction<LayoutFetchResponse<T, R>>
 ) => {
-  actions.payload.swimlaneIds.forEach((swimlane) => {
+  actions.payload.swimlane.forEach((swimlane) => {
     state[swimlane.id] = {
       count: swimlane.count,
-      cols: {},
+      cols: swimlane.column.reduce((acc, column) => {
+        acc[column.id]= {
+          count: column.count,
+          tasks: [],
+          extra: column.extra,
+          id: column.id,
+          label: column.label,
+          networkState: "idle",
+          backendPagination: {
+            blockSize: 10,
+            memoryInBlock: 0,
+          },
+        };
+        return acc;
+      }, {} as KanbanSwimlanes['cols']),
       label: swimlane.label,
       extra: swimlane.extra,
       id: swimlane.id,
       networkState: "idle",
     };
-    actions.payload.columnIds.forEach((column) => {
-      state[swimlane.id].cols[column.id] = {
-        count: 0,
-        tasks: [],
-        extra: column.extra,
-        id: column.id,
-        label: column.label,
-        networkState: "idle",
-        backendPagination: {
-          blockSize: 10,
-          memoryInBlock: 0,
-        },
-      };
-      return state;
-    });
+    
   });
 
   return state;
@@ -138,11 +139,9 @@ const updatePaginatedSwimlane = <T extends { id: Id }>(
   const swimlanes = actions.payload;
   const swimlanesIdsToUpdate = Object.keys(actions.payload);
   swimlanesIdsToUpdate.forEach((id) => {
-    state[id].count = swimlanes[id].count;
     state[id].networkState = "success";
     const colIds = Object.keys(swimlanes[id].cols);
     colIds.forEach((colId) => {
-      state[id].cols[colId].count = swimlanes[id].cols[colId].count;
       state[id].cols[colId].extra = swimlanes[id].cols[colId].extra;
       state[id].cols[colId].id = swimlanes[id].cols[colId].id;
       state[id].cols[colId].label = swimlanes[id].cols[colId].label;

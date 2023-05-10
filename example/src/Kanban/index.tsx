@@ -10,13 +10,18 @@ import cx from "./index.module.css";
 import { MyTask } from "./type";
 import { useCallback } from "react";
 import { Task } from "../../../src/Kanban/type";
+import {ApiTask, fetchColumns, fetchLayout, fetchSwimlanes} from "./eg";
+import randomWords from "random-words";
+
 const isAllowedBE = (): Promise<boolean> => {
   return new Promise((res, rej) => {
     setTimeout(() => {
       1 ? res(true) : rej(false);
-    }, 1500);
+    }, 2500);
   });
 };
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let cachedState: KanbanBoardState;
 const fetchData = (): Promise<KanbanBoardState<any>> => {
@@ -33,25 +38,39 @@ const fetchData = (): Promise<KanbanBoardState<any>> => {
 
 function Kanban() {
   return (
-    <KanbanBoard<MyTask>
+    <KanbanBoard<ApiTask & {id: number}>
       isDropAllowed={isAllowedBE}
       layoutFetch={async () => {
-        const res = await fetchData();
-        const ids = Object.keys(res);
-        const colIds = Object.keys(res[ids[0]].cols);
+        const res = await fetchLayout();
         return {
-          swimlaneIds: ids.map((id) => ({
-            id: id,
-            count: res[id].count,
-            extra: res[id].extra,
-            label: res[id].label,
+          swimlane: res.map((row) => ({
+            id: row.rowId,
+            label: row.rowLabel,
+            extra: null,
+            count: row.totalTaskCount,
+            column: Object.keys(row.columnData).map((colId) => ({
+              count: row.columnData[colId].innerTaskCount,
+              extra: null,
+              id: colId,
+              label: row.columnData[colId].colLabel,
+            }))as LayoutFetchResponse<any, any>['swimlane'][0]['column'],
           })),
-          columnIds: colIds.map((id) => ({
-            id: id,
-            extra: res[ids[0]].cols[id].extra,
-            label: res[ids[0]].cols[id].label,
-          })),
-        } as LayoutFetchResponse<any, any>;
+        } as LayoutFetchResponse<any, any>
+        // const ids = Object.keys(res);
+        // const colIds = Object.keys(res[ids[0]].cols);
+        // return {
+        //   swimlaneIds: ids.map((id) => ({
+        //     id: id,
+        //     count: res[id].count,
+        //     extra: res[id].extra,
+        //     label: res[id].label,
+        //   })),
+        //   columnIds: colIds.map((id) => ({
+        //     id: id,
+        //     extra: res[ids[0]].cols[id].extra,
+        //     label: res[ids[0]].cols[id].label,
+        //   })),
+        // } as LayoutFetchResponse<any, any>;
       }}
       taskCardRenderer={({ extra, highlight }) => {
         return (
@@ -59,41 +78,101 @@ function Kanban() {
             <div>
               <div className={cx.circle} />
             </div>
-            <div className={cx.taskTitle}>{extra.name}</div>
+            <div className={cx.taskTitle}>{extra.taskName}</div>
           </div>
         );
       }}
       height={1000}
-      swimlaneColumnFetch={fetchData}
+      swimlaneColumnFetch={useCallback(
+        async ({ columnId, endOffset, startOffset, swimlaneId }) => {
+          const res = await fetchColumns({
+            offsetCol: startOffset,
+            colId: columnId,
+            rowId: swimlaneId,
+          });
+          return res.columnData[columnId]?.tasks.map((task) => ({
+            colId: columnId,
+            extra: {...task, id: task.taskId},
+            id: task.taskId,
+            rowId: swimlaneId,
+            isDropped: true,
+            label: task.taskName,
+            swimlaneId: swimlaneId,
+          })) ?? [] as Task<ApiTask &{id: number}>[];
+          // const res = await fetchData();
+          // return res[swimlaneId].cols[columnId].tasks.slice(
+          //   startOffset,
+          //   endOffset
+          // );
+        },
+        []
+      )}
       swimlaneFetch={useCallback(
-        async ({ swimlaneIds }): Promise<KanbanBoardState<any>> => {
-          const res = await fetchData();
-          const ids = Object.keys(res);
-          const colIds = Object.keys(res[ids[0]].cols);
-          const result = swimlaneIds.reduce((acc, swimlaneId) => {
-            acc[swimlaneId] = {
-              id: swimlaneId,
-              count: res[swimlaneId].count,
-              extra: res[swimlaneId].extra,
-              label: res[swimlaneId].label,
-              cols: colIds.reduce((colAcc, colId) => {
-                colAcc[colId] = {
+        async ({ swimlaneIds, endOffset, startOffset }): Promise<KanbanBoardState<any>> => {
+          console.log(swimlaneIds);
+          const res = await fetchSwimlanes({ swimlaneIds });
+          return res.reduce((acc, row) => {
+            acc[row.rowId] = {
+              extra: {
+                id: row.rowId,
+              },
+              id: row.rowId,
+              networkState: "success",
+              label: row.rowLabel,
+              cols: Object.keys(row.columnData).reduce((acc, colId) => {
+                acc[colId] = {
                   id: colId,
-                  extra: res[swimlaneId].cols[colId].extra,
-                  label: res[swimlaneId].cols[colId].label,
-                  tasks: res[swimlaneId].cols[colId].tasks as Task<MyTask>[],
-                  count: res[swimlaneId].cols[colId].count,
+                  tasks:
+                    row.columnData[colId]?.tasks.map((task) => ({
+                      colId: colId,
+                      extra: { ...task, id: task.taskId },
+                      id: task.taskId,
+                      isDropped: true,
+                      label: task.taskName,
+                      rowId: row.rowId,
+                      swimlaneId: row.rowId,
+                    })) ?? [],
+                  extra: {
+                    id: colId,
+                  },
+                  label: row.columnData[colId]?.colLabel ?? "",
+                  networkState: "success",
                 };
-                return colAcc;
+                return acc;
               }, {} as KanbanSwimlanes["cols"]),
             };
             return acc;
           }, {} as KanbanBoardState<any>);
-          console.log(
-            "fetched for swimlanes",
-            swimlaneIds.map((id) => result[id].label)
-          );
-          return result;
+          // const res = await fetchData();
+          // const ids = Object.keys(res);
+          // const colIds = Object.keys(res[ids[0]].cols);
+          // const result = swimlaneIds.reduce((acc, swimlaneId) => {
+          //   acc[swimlaneId] = {
+          //     id: swimlaneId,
+          //     count: res[swimlaneId].count,
+          //     extra: res[swimlaneId].extra,
+          //     label: res[swimlaneId].label,
+          //     cols: colIds.reduce((colAcc, colId) => {
+          //       colAcc[colId] = {
+          //         id: colId,
+          //         extra: res[swimlaneId].cols[colId].extra,
+          //         label: res[swimlaneId].cols[colId].label,
+          //         tasks: res[swimlaneId].cols[colId].tasks.slice(
+          //           0,
+          //           10
+          //         ) as Task<MyTask>[],
+          //         count: res[swimlaneId].cols[colId].count,
+          //       };
+          //       return colAcc;
+          //     }, {} as KanbanSwimlanes["cols"]),
+          //   };
+          //   return acc;
+          // }, {} as KanbanBoardState<any>);
+          // console.log(
+          //   "fetched for swimlanes",
+          //   swimlaneIds.map((id) => result[id].label)
+          // );
+          // return result;
         },
         []
       )}
