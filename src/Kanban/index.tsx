@@ -13,5 +13,6 @@ export type {
   PaginatedSwimlaneFetch,
   KanbanSwimlanes,
   KanbanColumns,
+  GetRowAndColumnForTaskIdResponse,
 } from "./type";
 export type { KanbanContextParams } from "./KanbanContext";

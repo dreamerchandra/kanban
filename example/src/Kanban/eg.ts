@@ -48,8 +48,8 @@ interface FetchSwimlane {
 }
 
 type FetchSwimlanesResponse = FetchSwimlane[]
-const apiKey = "";
-const api = ``;
+const apiKey = "87f8a134-4788-4ae8-80f7-91beafd66fd0";
+const api = `https://asim.api.nitro.run`;
 const rowGroup = "project";
 const columnGroup = "status";
 
@@ -94,3 +94,23 @@ export const fetchColumns = ({
       mode: "cors",
     }
   ).then((res) => res.json());
+
+
+type getRowAndColForTaskIdResponse = {
+  rowId: number;
+  rowLabel: string;
+  columnData: Record<string, {
+    colLabel: string;
+   }>
+}[];
+
+
+export const getRowAndColumnForTaskId = ({ taskId }): Promise<getRowAndColForTaskIdResponse> => fetch(`${api}/api/v1/tasks/getRowAndColForTaskId?taskId=${taskId}&rowGroup=${rowGroup}&columnGroup=${columnGroup}`, {
+  headers: {
+    accept: 'application/json, text/plain, */*',
+    'api-key': apiKey
+  },
+  referrerPolicy: 'same-origin',
+  method: 'GET',
+  mode: 'cors'
+}).then((res) => res.json())

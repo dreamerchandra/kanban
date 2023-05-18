@@ -9,16 +9,22 @@ import { getData } from "./stub";
 import cx from "./index.module.css";
 import { MyTask } from "./type";
 import { useCallback } from "react";
-import { Task } from "../../../src/Kanban/type";
-import {ApiTask, fetchColumns, fetchLayout, fetchSwimlanes} from "./eg";
+import { GetRowAndColumnForTaskIdResponse, Task } from "../../../src/Kanban/type";
+import {ApiTask, fetchColumns, fetchLayout, fetchSwimlanes, getRowAndColumnForTaskId} from "./eg";
 import randomWords from "random-words";
+import { DropParams } from "kanban";
 
-const isAllowedBE = (): Promise<boolean> => {
-  return new Promise((res, rej) => {
-    setTimeout(() => {
-      1 ? res(true) : rej(false);
-    }, 2500);
-  });
+const isAllowedBE = async (
+  dropParams: DropParams
+): Promise<GetRowAndColumnForTaskIdResponse> => {
+  const res = await getRowAndColumnForTaskId({ taskId: dropParams.task.id });
+  return {
+    isAllowed: true,
+    values: res.map((row) => ({
+      swimlaneId: row.rowId,
+      columnIds: Object.keys(row.columnData),
+    })),
+  };
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

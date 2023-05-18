@@ -117,10 +117,24 @@ export interface ColumnPaginationAction<TaskDetails = { id: Id }> {
 export type UpdateSwimlaneParams<T = { id: Id }> =
   KanbanBoardState<T>;
 
+export type UpdateSwimlaneRequestStatus = {
+  swimlaneIds: Id[];
+  status: NetworkState;
+};
+
 export type LayoutFetch = <
   SwimlaneExtra = { id: Id },
   ColumnExtra = { id: Id }
 >() => Promise<LayoutFetchResponse<SwimlaneExtra, ColumnExtra>>;
+
+export type GetRowAndColumnForTaskIdResponse = {
+  values: {
+    swimlaneId: Id;
+    columnIds: Id[];
+  }[];
+  isAllowed: boolean;
+};
+
 
 export type PaginatedSwimlaneFetch = <TaskDetails>(
   params: SwimlaneFetchParams

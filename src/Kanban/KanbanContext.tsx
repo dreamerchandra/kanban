@@ -10,6 +10,7 @@ import React, {
 import {
   ColumnPaginationAction,
   DropParams,
+  GetRowAndColumnForTaskIdResponse,
   Id,
   KanbanBoardState,
   KanbanSwimlanes,
@@ -18,12 +19,14 @@ import {
   PurgeAction,
   Task,
   UpdateSwimlaneParams,
+  UpdateSwimlaneRequestStatus,
 } from "./type";
 
 type KanbanActions = {
   handleDrop: (params: DropParams) => void;
   purgeData: (params: PurgeAction) => void;
   updatePaginatedSwimlane: (params: UpdateSwimlaneParams) => void;
+  updateSwimlaneRequestStatus: (params: UpdateSwimlaneRequestStatus) => void;
   updatePaginatedColumn: (params: ColumnPaginationAction) => void;
 };
 export interface KanbanContextParams<TaskDetails extends unknown = any> {
@@ -31,7 +34,9 @@ export interface KanbanContextParams<TaskDetails extends unknown = any> {
   setTask: (task: Task<TaskDetails> | null) => void;
   isDropAllowed: (
     params: DropParams<TaskDetails>
-  ) => boolean | Promise<boolean>;
+  ) =>
+    | GetRowAndColumnForTaskIdResponse
+    | Promise<GetRowAndColumnForTaskIdResponse>;
   kanbanState: KanbanBoardState<TaskDetails> | null;
   dragRef: MutableRefObject<any> | null;
   kanbanActions: KanbanActions;
@@ -60,6 +65,30 @@ const handleDrop = (
   }
   return state;
 };
+
+const upsertTaskInCells = (state: KanbanBoardState, action: PayloadAction<{values: GetRowAndColumnForTaskIdResponse['values'], task: Task}>) => {
+  const {task, values} = action.payload;
+  values.forEach(({swimlaneId, columnIds}) => {
+    columnIds.forEach((columnId) => {
+      const existingTask = state[swimlaneId].cols[columnId].tasks.find((t) => t.id === task.id);
+      if (existingTask) {
+        existingTask.isDropped = true;
+        existingTask.extra = task.extra;
+        existingTask.label = task.label;
+      } else {
+        state[swimlaneId].cols[columnId].tasks.unshift({
+          colId: columnId,
+          swimlaneId: swimlaneId,
+          id: task.id,
+          isDropped: true,
+          extra: task.extra,
+          label: task.label,
+        })
+      }
+    })
+  })
+  return state;
+}
 
 const purgeData = (
   state: KanbanBoardState,
@@ -177,6 +206,18 @@ const updatePaginatedColumn = <T extends { id: Id }>(
   return state;
 };
 
+const updateSwimlaneFetching = (
+  state: KanbanBoardState,
+  actions: PayloadAction<UpdateSwimlaneRequestStatus>
+) => {
+  const { swimlaneIds, status } = actions.payload;
+  swimlaneIds.forEach((id) => {
+    state[id].networkState = status;
+  });
+  return state;
+};
+
+
 export const kanbanSlice = createSlice({
   initialState: {},
   name: "kanban-board-slice",
@@ -186,6 +227,8 @@ export const kanbanSlice = createSlice({
     purgeData,
     updatePaginatedSwimlane,
     updatePaginatedColumn,
+    updateSwimlaneFetching,
+    upsertTaskInCells,
   },
 });
 export const stateKanbanActions = kanbanSlice.actions;

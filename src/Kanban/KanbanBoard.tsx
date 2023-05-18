@@ -1,4 +1,4 @@
-import React, { FC, ReactNode, useCallback, useRef } from "react";
+import React, { FC, ReactNode, useCallback, useEffect, useRef } from "react";
 import { Swimlane } from "./KanbanComponents";
 import { KanbanContext } from "./KanbanContext";
 import { VirtualizedList } from "./VirtualizedList";
@@ -9,6 +9,7 @@ import {
   Id,
   PaginatedSwimlaneColumnFetch,
   PaginatedSwimlaneFetch,
+  SwimlaneFetchParams,
   Task,
 } from "./type";
 import { getKanbanFetchStatus } from "./utils";
@@ -32,13 +33,52 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
   swimlaneColumnFetch,
   taskCardRenderer,
   height,
-  layoutFetch: fetchData,
+  layoutFetch,
 }: KanbanBoardProps<GenericTask>): JSX.Element => {
   const { kanbanState, kanbanActions, drag, setDrag, swimlanesRef } =
-    useKanbanState<Task>({ isDropAllowed, layoutFetch: fetchData });
-  const kanbanFetchStatusRef = getKanbanFetchStatus(kanbanState);
-  const swimlaneIds = Object.keys(kanbanFetchStatusRef);
+    useKanbanState<Task>({ isDropAllowed, layoutFetch });
+  const kanbanFetchStatus = getKanbanFetchStatus(kanbanState);
+  const kanbanFetchStatusRef = useRef(kanbanFetchStatus);
+  useEffect(() => {
+    kanbanFetchStatusRef.current = kanbanFetchStatus;
+  }, [kanbanFetchStatus]);
+  const swimlaneIds = Object.keys(kanbanFetchStatus);
   const dragRef = useRef();
+
+  const swimlaneFetcher = useCallback(
+    async (params: SwimlaneFetchParams) => {
+      console.log(kanbanFetchStatusRef.current, params.swimlaneIds);
+      const idsToBeFetched = params.swimlaneIds.filter(
+        (id) => kanbanFetchStatusRef.current[id]? kanbanFetchStatusRef.current[id].networkState === "idle" : true
+      );
+      if (idsToBeFetched.length === 0) {
+        return;
+      }
+      kanbanActions.updateSwimlaneRequestStatus({
+        status: "loading",
+        swimlaneIds: idsToBeFetched,
+      });
+      return swimlaneFetch<GenericTask>({
+        ...params,
+        swimlaneIds: idsToBeFetched,
+      })
+        .then((res) => {
+          kanbanActions.updateSwimlaneRequestStatus({
+            status: "success",
+            swimlaneIds: idsToBeFetched,
+          });
+          kanbanActions.updatePaginatedSwimlane(res);
+          return res;
+        })
+        .catch(() => {
+          kanbanActions.updateSwimlaneRequestStatus({
+            status: "failed",
+            swimlaneIds: idsToBeFetched,
+          });
+        });
+    },
+    [swimlaneFetch, kanbanActions]
+  );
 
   return (
     <KanbanContext.Provider
@@ -77,17 +117,11 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
                 inMemStart,
                 inMemEnd + 1
               );
-              const swimlanesToBeFetched = swimlanesInViewIds.filter(
-                (id) => kanbanFetchStatusRef[id].networkState !== "success"
-              );
-              if (swimlanesToBeFetched.length > 0) {
-                const res = await swimlaneFetch<GenericTask>({
-                  swimlaneIds: swimlanesToBeFetched,
-                  endOffset: end,
-                  startOffset: start,
-                });
-                kanbanActions.updatePaginatedSwimlane(res);
-              }
+              await swimlaneFetcher({
+                swimlaneIds: swimlanesInViewIds,
+                endOffset: end,
+                startOffset: start,
+              });
               kanbanActions.purgeData({
                 inView: {
                   swimlaneIds: swimlanesInViewIds,
@@ -115,12 +149,11 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
                   inMemEnd + 1
                 );
                 console.log(start, end);
-                const res = await swimlaneFetch<GenericTask>({
+                await swimlaneFetcher({
                   swimlaneIds: swimlanesInViewIds,
                   endOffset: end,
                   startOffset: start,
                 });
-                kanbanActions.updatePaginatedSwimlane(res);
               });
             },
             [swimlaneIds]

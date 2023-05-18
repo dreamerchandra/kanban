@@ -146,6 +146,31 @@ const Col = withKanbanContext<ColProps>(
         return () => clearTimeout(timerId);
       }, [col.tasks]);
 
+      const onScroll = useCallback(
+        async (start, end) => {
+          const startOffset = col.backendPagination.blockSize *
+            col.backendPagination.memoryInBlock;
+          const endOffset = startOffset + col.backendPagination.blockSize;
+          const hasScrolled80Percent = end > col.tasks.length * 0.8;
+          if (hasScrolled80Percent) {
+            console.log("fetching", startOffset, endOffset);
+            const data = await paginatedSwimlaneColumnFetch<
+              Task["extra"]
+            >({
+              swimlaneId: swimlaneId,
+              endOffset,
+              startOffset,
+              columnId: col.id,
+            });
+            kanbanActions.updatePaginatedColumn({
+              swimlaneId,
+              columnId: col.id,
+              tasks: data,
+            });
+          }
+        },
+        [col]
+      );
       return (
         <div
           className={cx.col}
@@ -178,51 +203,27 @@ const Col = withKanbanContext<ColProps>(
               <span>+</span>
             </div>
             <div className={cx.tasksContainer}>
-              <VirtualizedList
-                ref={ref}
-                name='column'
-                numItems={col.tasks.length}
-                itemHeight={120}
-                parentHeight={384}
-                onScroll={useCallback(
-                  async (start, end) => {
-                    const startOffset =
-                      col.backendPagination.blockSize *
-                      col.backendPagination.memoryInBlock;
-                    const endOffset =
-                      startOffset + col.backendPagination.blockSize;
-                    const hasScrolled80Percent = end > col.tasks.length * 0.8;
-                    if (hasScrolled80Percent) {
-                      console.log("fetching", startOffset, endOffset);
-                      const data = await paginatedSwimlaneColumnFetch<
-                        Task["extra"]
-                      >({
-                        swimlaneId: swimlaneId,
-                        endOffset,
-                        startOffset,
-                        columnId: col.id,
-                      });
-                      kanbanActions.updatePaginatedColumn({
-                        swimlaneId,
-                        columnId: col.id,
-                        tasks: data,
-                      });
-                    }
-                  },
-                  [col]
-                )}
-                renderItem={({ index, style }) => {
-                  return (
-                    <div style={style} key={col.tasks[index].id}>
-                      <TaskCardRenderer
-                        task={col.tasks[index]}
-                        highlight={!oldTaskIds.includes(col.tasks[index].id)}
-                        taskCardRenderer={taskCardRenderer}
-                      />
-                    </div>
-                  );
-                }}
-              />
+              {col.networkState === "success" ? (
+                <VirtualizedList
+                  ref={ref}
+                  name='column'
+                  numItems={col.tasks.length}
+                  itemHeight={120}
+                  parentHeight={384}
+                  onScroll={onScroll}
+                  renderItem={({ index, style }) => {
+                    return (
+                      <div style={style} key={col.tasks[index].id}>
+                        <TaskCardRenderer
+                          task={col.tasks[index]}
+                          highlight={!oldTaskIds.includes(col.tasks[index].id)}
+                          taskCardRenderer={taskCardRenderer}
+                        />
+                      </div>
+                    );
+                  }}
+                />
+              ): <>{col.networkState}</>}
             </div>
           </div>
         </div>
@@ -262,17 +263,21 @@ export const Swimlane = withKanbanContext(
           <span className={cx.pill}>{swimlane.label}</span>
           <Counter className={cx.count} count={swimlane.count} />
         </div>
-        <div className={cx.colWrapper}>
-          {Object.values(swimlane.cols).map((col) => (
-            <Col
-              col={col}
-              key={col.id}
-              swimlaneId={swimlaneId}
-              taskCardRenderer={taskCardRenderer}
-              paginatedSwimlaneColumnFetch={swimlaneColumnFetch}
-            />
-          ))}
-        </div>
+        {swimlane.networkState === "success" ? (
+          <div className={cx.colWrapper}>
+            {Object.values(swimlane.cols).map((col) => (
+              <Col
+                col={col}
+                key={col.id}
+                swimlaneId={swimlaneId}
+                taskCardRenderer={taskCardRenderer}
+                paginatedSwimlaneColumnFetch={swimlaneColumnFetch}
+              />
+            ))}
+          </div>
+        ) : (
+          <>{swimlane.networkState}</>
+        )}
       </div>
     );
   }

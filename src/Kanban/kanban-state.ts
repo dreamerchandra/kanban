@@ -15,6 +15,7 @@ import {
 import { SwimlaneRef, scrollController } from "./smooth-scroll";
 import {
   DropParams,
+  GetRowAndColumnForTaskIdResponse,
   Id,
   KanbanBoardState,
   LayoutFetch,
@@ -107,7 +108,9 @@ const useDrag = <T extends { id: Id }>(
 };
 
 export interface UseKanbanStateParam {
-  isDropAllowed: (params: DropParams) => boolean | Promise<boolean>;
+  isDropAllowed: (
+    params: DropParams
+  ) => Promise<GetRowAndColumnForTaskIdResponse>;
   layoutFetch: LayoutFetch;
   onDropSuccess?: (params: DropParams) => void;
   onDropFailed?: (params: DropParams) => void;
@@ -119,12 +122,12 @@ declare global {
   }
 }
 
-const safePromiseBoolean = async (promise: Promise<boolean>) => {
+const safePromiseBoolean = async <T>(promise: Promise<T> | T) => {
   try {
     const result = await promise;
     return result;
   } catch (e) {
-    return false;
+    return;
   }
 };
 
@@ -149,7 +152,6 @@ export const useKanbanState = <TaskDetails extends { id: Id }>({
   const kanbanActions = useMemo((): KanbanContextParams["kanbanActions"] => {
     return {
       handleDrop: async ({ from, task, to }: DropParams) => {
-        const isAllowedPromise = isDropAllowed({ task, from, to });
         dispatch(
           stateKanbanActions.handleDrop({
             from,
@@ -157,10 +159,12 @@ export const useKanbanState = <TaskDetails extends { id: Id }>({
             to,
           })
         );
-        const isAllowed =
-          typeof isAllowedPromise === "boolean"
-            ? isAllowedPromise
-            : await safePromiseBoolean(isAllowedPromise);
+        const dropResponse = await safePromiseBoolean(isDropAllowed({
+          task,
+          from,
+          to,
+        }));
+        const isAllowed = dropResponse? dropResponse.isAllowed : false;
         if (!isAllowed) {
           const params = {
             from: to,
@@ -170,6 +174,10 @@ export const useKanbanState = <TaskDetails extends { id: Id }>({
           dispatch(stateKanbanActions.handleDrop(params));
           onDropFailed?.(params);
         } else {
+          dispatch(stateKanbanActions.upsertTaskInCells({
+            task: structuredClone(task),
+            values: dropResponse!.values
+          }));
           onDropSuccess?.({ from, task, to });
         }
       },
@@ -182,6 +190,9 @@ export const useKanbanState = <TaskDetails extends { id: Id }>({
       updatePaginatedColumn: (params) => {
         dispatch(stateKanbanActions.updatePaginatedColumn(params));
       },
+      updateSwimlaneRequestStatus: (params) => {
+        dispatch(stateKanbanActions.updateSwimlaneFetching(params));
+      }
     };
   }, [isDropAllowed, onDropFailed, onDropSuccess]);
   return {
