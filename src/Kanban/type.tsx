@@ -171,3 +171,11 @@ export interface LayoutFetchResponse<SwimlaneExtra, ColumnExtra> {
     }[];
   }[];
 }
+
+
+export interface TaskCardRendererProps {
+    id: Task["id"];
+    extra?: Task["extra"];
+    highlight: boolean;
+    isLoading: boolean;
+  }

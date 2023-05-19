@@ -13,6 +13,8 @@ import { GetRowAndColumnForTaskIdResponse, Task } from "../../../src/Kanban/type
 import {ApiTask, fetchColumns, fetchLayout, fetchSwimlanes, getRowAndColumnForTaskId} from "./eg";
 import randomWords from "random-words";
 import { DropParams } from "kanban";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
 const isAllowedBE = async (
   dropParams: DropParams
@@ -182,6 +184,15 @@ function Kanban() {
         },
         []
       )}
+      taskCardLoadingRenderer={() => {
+        return (
+          <div className={cx.taskLoading}>
+            <SkeletonTheme baseColor='#fff' highlightColor='var(--cool-gray-10)'>
+              <Skeleton count={1} width={256} height={112} />
+            </SkeletonTheme>
+          </div>
+        );
+      }}
     />
   );
 }

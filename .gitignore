@@ -22,3 +22,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 original-data.ts
+example/sample/compress.json
+example/sample/public.json
+example/sample/public1.json
+example/sample/public2.json
+example/sample/sample.json
+example/sample/test.json

@@ -11,6 +11,7 @@ import {
   PaginatedSwimlaneFetch,
   SwimlaneFetchParams,
   Task,
+  TaskCardRendererProps,
 } from "./type";
 import { getKanbanFetchStatus } from "./utils";
 
@@ -18,11 +19,8 @@ export interface KanbanBoardProps<GenericTask extends { id: Id }>
   extends UseKanbanStateParam {
   swimlaneFetch: PaginatedSwimlaneFetch;
   swimlaneColumnFetch: PaginatedSwimlaneColumnFetch;
-  taskCardRenderer: FC<{
-    id: GenericTask["id"];
-    extra: GenericTask;
-    highlight: boolean;
-  }>;
+  taskCardRenderer: FC<TaskCardRendererProps>;
+  taskCardLoadingRenderer: FC<TaskCardRendererProps>;
   children?: ReactNode;
   height: number;
 }
@@ -34,6 +32,7 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
   taskCardRenderer,
   height,
   layoutFetch,
+  taskCardLoadingRenderer,
 }: KanbanBoardProps<GenericTask>): JSX.Element => {
   const { kanbanState, kanbanActions, drag, setDrag, swimlanesRef } =
     useKanbanState<Task>({ isDropAllowed, layoutFetch });
@@ -48,8 +47,10 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
   const swimlaneFetcher = useCallback(
     async (params: SwimlaneFetchParams) => {
       console.log(kanbanFetchStatusRef.current, params.swimlaneIds);
-      const idsToBeFetched = params.swimlaneIds.filter(
-        (id) => kanbanFetchStatusRef.current[id]? kanbanFetchStatusRef.current[id].networkState === "idle" : true
+      const idsToBeFetched = params.swimlaneIds.filter((id) =>
+        kanbanFetchStatusRef.current[id]
+          ? kanbanFetchStatusRef.current[id].networkState === "idle"
+          : true
       );
       if (idsToBeFetched.length === 0) {
         return;
@@ -165,6 +166,7 @@ export const KanbanBoard = <GenericTask extends { id: Id }>({
                 kanbanState={kanbanState}
                 key={swimlaneIds[index]}
                 taskCardRenderer={taskCardRenderer}
+                taskCardLoadingRenderer={taskCardLoadingRenderer}
                 swimlaneColumnFetch={swimlaneColumnFetch}
               />
             </div>

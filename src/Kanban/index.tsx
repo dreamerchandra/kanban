@@ -14,5 +14,6 @@ export type {
   KanbanSwimlanes,
   KanbanColumns,
   GetRowAndColumnForTaskIdResponse,
+  TaskCardRendererProps
 } from "./type";
 export type { KanbanContextParams } from "./KanbanContext";

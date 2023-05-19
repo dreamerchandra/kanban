@@ -111,12 +111,12 @@
 
 .highlight .task {
   transition: background-color 444.184ms ease 0ms, border-color 0s ease;
-  background-color: var(--blue-30);
+  /* background-color: var(--blue-30); */
 }
 
 .highlight {
   transition: background-color 444.184ms ease 0ms, border-color 0s ease;
-  background-color: var(--blue-30);
+  /* background-color: var(--blue-30); */
 }
 
 .counter {

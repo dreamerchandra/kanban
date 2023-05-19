@@ -2,28 +2,32 @@ import React, { FC, memo, useCallback, useLayoutEffect, useRef, useState } from 
 import { withKanbanContext } from "./KanbanContext";
 import { VirtualizedList } from "./VirtualizedList";
 import cx from "./index.module.css";
-import { highlightInterval } from "./knob";
+import { highlightInterval, loadingCardCount } from "./knob";
 import {
   Task as ITask,
   Id,
   KanbanBoardState,
   KanbanColumns,
   PaginatedSwimlaneColumnFetch,
+  TaskCardRendererProps,
 } from "./type";
 import { Task } from "./type";
 
 interface TaskProps {
-  task: ITask;
+  task?: ITask;
   highlight: boolean;
-  taskCardRenderer: FC<{
-    id: Task["id"];
-    extra: Task["extra"];
-    highlight: boolean;
-  }>;
+  taskCardRenderer: FC<TaskCardRendererProps>;
+  isLoading: boolean;
 }
 
 const TaskCardRenderer = withKanbanContext<TaskProps>(
-  ({ task, setTask, highlight, taskCardRenderer: ConsumerTaskRenderer }) => {
+  ({
+    task,
+    setTask,
+    highlight,
+    taskCardRenderer: ConsumerTaskRenderer,
+    isLoading,
+  }) => {
     const [drag, setDrag] = useState(false);
     const [shouldHighlight, setShouldHighlight] = useState(false);
     useLayoutEffect(() => {
@@ -34,16 +38,17 @@ const TaskCardRenderer = withKanbanContext<TaskProps>(
     }, [highlight]);
     return (
       <div
-        id={task.id + ""}
+        id={task?.id + ""}
         className={`${cx.taskWrapper} ${drag ? cx.drag : ""} ${
           shouldHighlight ? cx.highlight : ""
         }`}
-        draggable
+        draggable={isLoading ? false : true}
         onDragStart={(e) => {
+          if(!task) return;
           e.dataTransfer.clearData();
           e.dataTransfer.setData("text/plan", JSON.stringify({ task }));
           e.dataTransfer.dropEffect = "move";
-          setTask(task);
+          setTask(task!);
           setDrag(true);
         }}
         onDragEnd={(e) => {
@@ -54,9 +59,10 @@ const TaskCardRenderer = withKanbanContext<TaskProps>(
         }}
       >
         <ConsumerTaskRenderer
-          id={task.id}
-          extra={task.extra}
+          id={task?.id ?? ''}
+          extra={task?.extra}
           highlight={shouldHighlight || drag}
+          isLoading={isLoading}
         />
       </div>
     );
@@ -117,12 +123,10 @@ const Counter: FC<CounterProps> = ({ count, className }) => {
 interface ColProps {
   col: KanbanColumns;
   swimlaneId: Id;
-  taskCardRenderer: FC<{
-    id: Task["id"];
-    extra: Task["extra"];
-    highlight: boolean;
-  }>;
+  taskCardRenderer: FC<TaskCardRendererProps>;
+  taskCardLoadingRenderer: FC<TaskCardRendererProps>;
   paginatedSwimlaneColumnFetch: PaginatedSwimlaneColumnFetch;
+  isLoading: boolean;
 }
 
 const Col = withKanbanContext<ColProps>(
@@ -133,7 +137,9 @@ const Col = withKanbanContext<ColProps>(
       kanbanActions,
       setTask,
       taskCardRenderer,
+      taskCardLoadingRenderer,
       paginatedSwimlaneColumnFetch,
+      isLoading
     }) => {
       const [oldTaskIds, setOldTaskIds] = useState(
         col.tasks.map((task) => task.id)
@@ -152,11 +158,10 @@ const Col = withKanbanContext<ColProps>(
             col.backendPagination.memoryInBlock;
           const endOffset = startOffset + col.backendPagination.blockSize;
           const hasScrolled80Percent = end > col.tasks.length * 0.8;
-          if (hasScrolled80Percent) {
+          const isItemsToBeFetched = startOffset >= col.tasks.length;
+          if (hasScrolled80Percent && isItemsToBeFetched) {
             console.log("fetching", startOffset, endOffset);
-            const data = await paginatedSwimlaneColumnFetch<
-              Task["extra"]
-            >({
+            const data = await paginatedSwimlaneColumnFetch<Task["extra"]>({
               swimlaneId: swimlaneId,
               endOffset,
               startOffset,
@@ -171,6 +176,12 @@ const Col = withKanbanContext<ColProps>(
         },
         [col]
       );
+      const fetchedTaskLength = col.tasks.length + 1;
+      const loadingItems = isLoading
+        ? loadingCardCount
+        : fetchedTaskLength <= col.count
+        ? Math.min(loadingCardCount, col.count - fetchedTaskLength)
+        : 0;
       return (
         <div
           className={cx.col}
@@ -203,27 +214,38 @@ const Col = withKanbanContext<ColProps>(
               <span>+</span>
             </div>
             <div className={cx.tasksContainer}>
-              {col.networkState === "success" ? (
-                <VirtualizedList
-                  ref={ref}
-                  name='column'
-                  numItems={col.tasks.length}
-                  itemHeight={120}
-                  parentHeight={384}
-                  onScroll={onScroll}
-                  renderItem={({ index, style }) => {
+              <VirtualizedList
+                ref={ref}
+                name='column'
+                numItems={col.tasks.length + loadingItems}
+                itemHeight={120}
+                parentHeight={384}
+                onScroll={onScroll}
+                renderItem={({ index, style }) => {
+                  if (index >= col.tasks.length) {
                     return (
-                      <div style={style} key={col.tasks[index].id}>
+                      <div style={style} key={index}>
                         <TaskCardRenderer
                           task={col.tasks[index]}
-                          highlight={!oldTaskIds.includes(col.tasks[index].id)}
-                          taskCardRenderer={taskCardRenderer}
+                          highlight={false}
+                          taskCardRenderer={taskCardLoadingRenderer}
+                          isLoading
                         />
                       </div>
                     );
-                  }}
-                />
-              ): <>{col.networkState}</>}
+                  }
+                  return (
+                    <div style={style} key={col.tasks[index].id}>
+                      <TaskCardRenderer
+                        task={col.tasks[index]}
+                        highlight={!oldTaskIds.includes(col.tasks[index].id)}
+                        taskCardRenderer={taskCardRenderer}
+                        isLoading={false}
+                      />
+                    </div>
+                  );
+                }}
+              />
             </div>
           </div>
         </div>
@@ -232,7 +254,8 @@ const Col = withKanbanContext<ColProps>(
     (pre, cur) => {
       return (
         pre.col.tasks.length === cur.col.tasks.length &&
-        pre.swimlaneId === cur.swimlaneId
+        pre.swimlaneId === cur.swimlaneId &&
+        pre.isLoading === cur.isLoading
       );
     }
   )
@@ -241,11 +264,8 @@ const Col = withKanbanContext<ColProps>(
 interface RowProps {
   swimlaneId: Id;
   kanbanState: KanbanBoardState;
-  taskCardRenderer: FC<{
-    id: Task["id"];
-    extra: any;
-    highlight: boolean;
-  }>;
+  taskCardRenderer: FC<TaskCardRendererProps>;
+  taskCardLoadingRenderer: FC<TaskCardRendererProps>;
   swimlaneColumnFetch: PaginatedSwimlaneColumnFetch;
 }
 
@@ -255,29 +275,29 @@ export const Swimlane = withKanbanContext(
     kanbanState,
     taskCardRenderer,
     swimlaneColumnFetch,
+    taskCardLoadingRenderer,
   }: RowProps) => {
     const swimlane = kanbanState[swimlaneId];
+    console.log(swimlane.networkState === "loading");
     return (
       <div className={cx.row}>
         <div className={cx.rowHeader}>
           <span className={cx.pill}>{swimlane.label}</span>
           <Counter className={cx.count} count={swimlane.count} />
         </div>
-        {swimlane.networkState === "success" ? (
-          <div className={cx.colWrapper}>
-            {Object.values(swimlane.cols).map((col) => (
-              <Col
-                col={col}
-                key={col.id}
-                swimlaneId={swimlaneId}
-                taskCardRenderer={taskCardRenderer}
-                paginatedSwimlaneColumnFetch={swimlaneColumnFetch}
-              />
-            ))}
-          </div>
-        ) : (
-          <>{swimlane.networkState}</>
-        )}
+        <div className={cx.colWrapper}>
+          {Object.values(swimlane.cols).map((col) => (
+            <Col
+              col={col}
+              key={col.id}
+              swimlaneId={swimlaneId}
+              taskCardRenderer={taskCardRenderer}
+              paginatedSwimlaneColumnFetch={swimlaneColumnFetch}
+              isLoading={swimlane.networkState === "loading"}
+              taskCardLoadingRenderer={taskCardLoadingRenderer}
+            />
+          ))}
+        </div>
       </div>
     );
   }

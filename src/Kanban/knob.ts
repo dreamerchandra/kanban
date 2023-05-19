@@ -8,3 +8,4 @@ export const inMemoryBuffer = 0;
 
 export const slowScroll = 8;
 export const speedScroll = 16;
+export const loadingCardCount = 3;
