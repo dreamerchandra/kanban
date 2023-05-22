@@ -30,6 +30,7 @@ const TaskCardRenderer = withKanbanContext<TaskProps>(
   }) => {
     const [drag, setDrag] = useState(false);
     const [shouldHighlight, setShouldHighlight] = useState(false);
+    const dragRef = useRef<HTMLDivElement>(null);
     useLayoutEffect(() => {
       const timerId = setTimeout(() => {
         setShouldHighlight(highlight);
@@ -37,34 +38,60 @@ const TaskCardRenderer = withKanbanContext<TaskProps>(
       return () => clearTimeout(timerId);
     }, [highlight]);
     return (
-      <div
-        id={task?.id + ""}
-        className={`${cx.taskWrapper} ${drag ? cx.drag : ""} ${
-          shouldHighlight ? cx.highlight : ""
-        }`}
-        draggable={isLoading ? false : true}
-        onDragStart={(e) => {
-          if(!task) return;
-          e.dataTransfer.clearData();
-          e.dataTransfer.setData("text/plan", JSON.stringify({ task }));
-          e.dataTransfer.dropEffect = "move";
-          setTask(task!);
-          setDrag(true);
-        }}
-        onDragEnd={(e) => {
-          e.preventDefault();
-          e.dataTransfer.clearData();
-          setTask(null);
-          setDrag(false);
-        }}
-      >
-        <ConsumerTaskRenderer
-          id={task?.id ?? ''}
-          extra={task?.extra}
-          highlight={shouldHighlight || drag}
-          isLoading={isLoading}
-        />
-      </div>
+      <>
+        <div
+          id={task?.id + ""}
+          className={`${cx.taskWrapper}`}
+          draggable={isLoading ? false : true}
+          onDragStart={(e) => {
+            if (!task) return;
+            e.persist();
+            e.dataTransfer.clearData();
+            e.dataTransfer.setData("text/plan", JSON.stringify({ task }));
+            if (!dragRef.current) return;
+            const taskWrapper = (e.target as any).cloneNode(true);
+            dragRef.current.innerHTML = taskWrapper.innerHTML;
+            (dragRef.current.childNodes[0] as any).style.transform = "rotate(-1deg)";
+            e.dataTransfer.setDragImage(dragRef.current, 50, 50);
+            dragRef.current.style.display = "block";
+            setTimeout(() => {
+              if (!dragRef.current) return;
+              console.log("test");
+              dragRef.current.style.display = "none";
+            }, 0);
+            e.dataTransfer.dropEffect = "move";
+            setTask(task!);
+            setDrag(true);
+          }}
+          onDragEnd={(e) => {
+            e.preventDefault();
+            if (dragRef.current) {
+              dragRef.current.innerHTML = "";
+            }
+            e.dataTransfer.clearData();
+            setTask(null);
+            setDrag(false);
+          }}
+        >
+          <ConsumerTaskRenderer
+            id={task?.id ?? ""}
+            extra={task?.extra}
+            highlight={false}
+            isLoading={isLoading}
+          />
+        </div>
+        <div
+          style={{
+            position: "fixed",
+            zIndex: 100,
+            display: "none",
+            width: "230px",
+            transform: "rotate(-1deg)",
+          }}
+          className={`${cx.taskWrapper}`}
+          ref={dragRef}
+        ></div>
+      </>
     );
   }
 );
