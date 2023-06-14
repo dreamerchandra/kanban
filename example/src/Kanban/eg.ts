@@ -65,7 +65,7 @@ export const fetchLayout = (): Promise<FetchLayoutResponse> => fetch(`${api}/api
 
 export const fetchSwimlanes = ({ swimlaneIds }): Promise<FetchSwimlanesResponse> =>
   fetch(
-    `${api}/api/v1/tasks/getlightkanbanV1?rowIds=${swimlaneIds.join(',')}&offsetCol=1&limitCol=10&rowGroup=${rowGroup}&columnGroup=${columnGroup}`,
+    `${api}/api/v1/tasks/getlightkanbanV1?rowIds=${swimlaneIds.join(',')}&rowGroup=${rowGroup}&columnGroup=${columnGroup}`,
     {
       headers: {
         accept: "application/json, text/plain, */*",
